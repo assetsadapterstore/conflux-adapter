@@ -18,6 +18,7 @@ package conflux
 import (
 	"fmt"
 	"github.com/blocktree/openwallet/v2/openwallet"
+	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 )
 
 //SaveLocalBlockHead 记录区块高度和hash到本地
@@ -53,16 +54,16 @@ func (bs *BlockScanner) GetLocalBlockHead() (uint64, string, error) {
 }
 
 //SaveLocalBlock 记录本地新区块
-func (bs *BlockScanner) SaveLocalBlock(blockHeader *EthBlock) error {
+func (bs *BlockScanner) SaveLocalBlock(blockHeader *cfxtypes.Block) error {
 
 	if bs.BlockchainDAI == nil {
 		return fmt.Errorf("Blockchain DAI is not setup ")
 	}
 
 	header := &openwallet.BlockHeader{
-		Hash:              blockHeader.BlockHash,
-		Previousblockhash: blockHeader.PreviousHash,
-		Height:            blockHeader.BlockHeight,
+		Hash:              blockHeader.Hash.String(),
+		Previousblockhash: blockHeader.ParentHash.String(),
+		Height:            blockHeader.Height.ToInt().Uint64(),
 		Symbol:            bs.wm.Symbol(),
 	}
 
@@ -70,7 +71,7 @@ func (bs *BlockScanner) SaveLocalBlock(blockHeader *EthBlock) error {
 }
 
 //GetLocalBlock 获取本地区块数据
-func (bs *BlockScanner) GetLocalBlock(height uint64) (*EthBlock, error) {
+func (bs *BlockScanner) GetLocalBlock(height uint64) (*cfxtypes.Block, error) {
 
 	if bs.BlockchainDAI == nil {
 		return nil, fmt.Errorf("Blockchain DAI is not setup ")
@@ -81,10 +82,10 @@ func (bs *BlockScanner) GetLocalBlock(height uint64) (*EthBlock, error) {
 		return nil, err
 	}
 
-	block := &EthBlock{
-		BlockHeader: BlockHeader{
-			BlockHash:   header.Hash,
-			BlockHeight: header.Height,
+	block := &cfxtypes.Block{
+		BlockHeader: cfxtypes.BlockHeader{
+			Hash:  cfxtypes.Hash( header.Hash),
+			Height: cfxtypes.NewBigInt(header.Height),
 		},
 	}
 

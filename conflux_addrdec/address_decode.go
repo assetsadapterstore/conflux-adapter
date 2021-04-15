@@ -2,8 +2,10 @@ package conflux_addrdec
 
 import (
 	"encoding/hex"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/openwallet"
+	"github.com/ethereum/go-ethereum/common"
 	"strings"
 )
 
@@ -24,7 +26,9 @@ func NewAddressDecoderV2() *AddressDecoderV2 {
 
 //AddressDecode 地址解析
 func (dec *AddressDecoderV2) AddressDecode(addr string, opts ...interface{}) ([]byte, error) {
-	addr = strings.TrimPrefix(addr, "0x")
+
+	expect := cfxaddress.MustNewFromBase32(addr)
+	addr = strings.TrimPrefix(expect.GetHexAddress(), "0x")
 	decodeAddr, err := hex.DecodeString(addr)
 	if err != nil {
 		return nil, err
@@ -40,12 +44,20 @@ func (dec *AddressDecoderV2) AddressEncode(hash []byte, opts ...interface{}) (st
 		//公钥hash处理
 		publicKey := owcrypt.PointDecompress(hash, owcrypt.ECC_CURVE_SECP256K1)
 		hash = owcrypt.Hash(publicKey[1:len(publicKey)], 0, owcrypt.HASH_ALG_KECCAK256)
+
 	}
 
 	//地址添加0x前缀
 	address := "0x" + hex.EncodeToString(hash[12:])
 
-	return address, nil
+	real := common.HexToAddress(address)
+	real[0] = real[0]&0x1f | 0x10
+
+	caddress,err := cfxaddress.New(real.Hex(),1029)
+	if err != nil{
+		return "",err
+	}
+	return caddress.MustGetBase32Address(), nil
 }
 
 // AddressVerify 地址校验

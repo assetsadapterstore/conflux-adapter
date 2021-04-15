@@ -43,7 +43,7 @@ func testNewWalletManager() *WalletManager {
 	wm := NewWalletManager()
 
 	//读取配置
-	absFile := filepath.Join("conf", "conf.ini")
+	absFile := filepath.Join("conf", "CFX.ini")
 	//log.Debug("absFile:", absFile)
 	c, err := config.NewConfig("ini", absFile)
 	if err != nil {
@@ -60,6 +60,21 @@ func TestFixGasLimit(t *testing.T) {
 	fixGasLimit.SetString(fixGasLimitStr, 10)
 	fmt.Printf("fixGasLimit: %d\n", fixGasLimit.Int64())
 }
+
+
+func TestGetBlockByNum(t *testing.T) {
+	wm := testNewWalletManager()
+	reuslt, err := wm.GetBlockByNum(100032)
+	if err != nil {
+		t.Errorf("TestGetBlockByNum error: %v", err)
+		return
+	}
+	log.Infof("block: %v", reuslt)
+}
+
+
+
+
 
 func TestWalletManager_GetAddrBalance(t *testing.T) {
 	wm := testNewWalletManager()

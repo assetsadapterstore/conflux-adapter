@@ -15,15 +15,15 @@
 package conflux
 
 import (
+	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/blocktree/openwallet/v2/common"
+	"github.com/blocktree/openwallet/v2/openwallet"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
-
-	"github.com/blocktree/openwallet/v2/openwallet"
 
 	"fmt"
 )
@@ -84,13 +84,13 @@ func (bs *BlockScanner) SetRescanBlockHeight(height uint64) error {
 		return fmt.Errorf("block height to rescan must greater than 0 ")
 	}
 
-	block, err := bs.wm.GetBlockByNum(height, false)
+	block, err := bs.wm.GetBlockByNum(height)
 	if err != nil {
 		bs.wm.Log.Errorf("get block spec by block number[%v] failed, err=%v", height, err)
 		return err
 	}
 
-	err = bs.SaveLocalBlockHead(height, block.BlockHash)
+	err = bs.SaveLocalBlockHead(height, block.Hash.String())
 	if err != nil {
 		bs.wm.Log.Errorf("save local block scanned failed, err=%v", err)
 		return err
@@ -99,15 +99,20 @@ func (bs *BlockScanner) SetRescanBlockHeight(height uint64) error {
 	return nil
 }
 
-func (bs *BlockScanner) newBlockNotify(block *EthBlock, isFork bool) {
-	header := block.CreateOpenWalletBlockHeader()
+func (bs *BlockScanner) newBlockNotify(block *cfxtypes.Block, isFork bool) {
+	var header = &openwallet.BlockHeader{
+		Hash:              block.Hash.String(),
+		Previousblockhash: block.ParentHash.String(),
+		Height:            block.Height.ToInt().Uint64(),
+		Time:              uint64(time.Now().Unix()),
+	}
 	header.Fork = isFork
 	header.Symbol = bs.wm.Config.Symbol
 	bs.NewBlockNotify(header)
 }
 
 func (bs *BlockScanner) ScanBlock(height uint64) error {
-	curBlock, err := bs.wm.GetBlockByNum(height, true)
+	curBlock, err := bs.wm.GetBlockByNum(height)
 	if err != nil {
 		bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
 		return err
@@ -159,13 +164,13 @@ func (bs *BlockScanner) RescanFailedRecord() {
 
 		bs.wm.Log.Std.Info("block scanner rescanning height: %d ...", height)
 
-		block, err := bs.wm.GetBlockByNum(height, true)
+		block, err := bs.wm.GetBlockByNum(height)
 		if err != nil {
 			bs.wm.Log.Std.Info("block scanner can not get new block data; unexpected error: %v", err)
 			continue
 		}
 
-		batchErr := bs.BatchExtractTransaction(block.BlockHeight, block.Transactions)
+		batchErr := bs.BatchExtractTransaction(block.Height.ToInt().Uint64(), block.Transactions)
 		if batchErr != nil {
 			bs.wm.Log.Std.Info("block scanner can not extractRechargeRecords; unexpected error: %v", batchErr)
 			continue
@@ -211,7 +216,7 @@ func (bs *BlockScanner) ScanBlockTask() {
 		curBlockHeight += 1
 		bs.wm.Log.Infof("block scanner try to scan block No.%v", curBlockHeight)
 
-		curBlock, err := bs.wm.GetBlockByNum(curBlockHeight, true)
+		curBlock, err := bs.wm.GetBlockByNum(curBlockHeight)
 		if err != nil {
 			bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
 			break
@@ -219,11 +224,11 @@ func (bs *BlockScanner) ScanBlockTask() {
 
 		isFork := false
 
-		if curBlock.PreviousHash != curBlockHash {
+		if curBlock.ParentHash.String() != curBlockHash {
 			previousHeight = curBlockHeight - 1
 			bs.wm.Log.Infof("block has been fork on height: %v.", curBlockHeight)
 			bs.wm.Log.Infof("block height: %v local hash = %v ", previousHeight, curBlockHash)
-			bs.wm.Log.Infof("block height: %v mainnet hash = %v ", previousHeight, curBlock.PreviousHash)
+			bs.wm.Log.Infof("block height: %v mainnet hash = %v ", previousHeight, curBlock.ParentHash.String())
 
 			bs.wm.Log.Infof("delete recharge records on block height: %v.", previousHeight)
 
@@ -234,23 +239,23 @@ func (bs *BlockScanner) ScanBlockTask() {
 
 			curBlockHeight = previousHeight - 1 //倒退2个区块重新扫描
 
-			curBlock, err = bs.GetLocalBlock(curBlockHeight)
+			//这里本地改个临时转换
+			localCurBlock, err := bs.GetLocalBlock(curBlockHeight)
 			if err != nil {
 				bs.wm.Log.Std.Error("block scanner can not get local block; unexpected error: %v", err)
 				bs.wm.Log.Info("block scanner prev block height:", curBlockHeight)
 
-				curBlock, err = bs.wm.GetBlockByNum(curBlockHeight, false)
+				curBlock, err = bs.wm.GetBlockByNum(curBlockHeight)
 				if err != nil {
 					bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum  failed, block number=%v, err=%v", curBlockHeight, err)
 					break
 				}
-
 			}
 
-			curBlockHash = curBlock.BlockHash
+			curBlockHash = localCurBlock.Hash.String()
 			bs.wm.Log.Infof("rescan block on height:%v, hash:%v.", curBlockHeight, curBlockHash)
 
-			err = bs.SaveLocalBlockHead(curBlock.BlockHeight, curBlock.BlockHash)
+			err = bs.SaveLocalBlockHead(localCurBlock.Height.ToInt().Uint64(), localCurBlock.Hash.String())
 			if err != nil {
 				bs.wm.Log.Errorf("save local block unscaned failed, err=%v", err)
 				break
@@ -265,13 +270,13 @@ func (bs *BlockScanner) ScanBlockTask() {
 			}
 
 		} else {
-			err = bs.BatchExtractTransaction(curBlock.BlockHeight, curBlock.Transactions)
+			err = bs.BatchExtractTransaction(curBlock.Height.ToInt().Uint64(), curBlock.Transactions)
 			if err != nil {
 				bs.wm.Log.Errorf("block scanner can not extractRechargeRecords; unexpected error: %v", err)
 				break
 			}
 
-			bs.SaveLocalBlockHead(curBlock.BlockHeight, curBlock.BlockHash)
+			bs.SaveLocalBlockHead(curBlock.Height.ToInt().Uint64(), curBlock.Hash.String())
 			bs.SaveLocalBlock(curBlock)
 
 			isFork = false
@@ -279,8 +284,8 @@ func (bs *BlockScanner) ScanBlockTask() {
 			bs.newBlockNotify(curBlock, isFork)
 		}
 
-		curBlockHeight = curBlock.BlockHeight
-		curBlockHash = curBlock.BlockHash
+		curBlockHeight = curBlock.Height.ToInt().Uint64()
+		curBlockHash = curBlock.Hash.String()
 
 	}
 
@@ -507,13 +512,13 @@ func (bs *BlockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Ba
 			<-threadControl
 		}()
 
-		balanceConfirmed, err := bs.wm.GetAddrBalance(addr.Address, "latest")
+		balanceConfirmed, err := bs.wm.GetAddrBalance(addr.Address, "latest_confirmed")
 		if err != nil {
 			bs.wm.Log.Error("get address[", addr.Address, "] balance failed, err=", err)
 			return
 		}
 
-		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "pending")
+		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "latest_state")
 		if err != nil {
 			balanceAll = balanceConfirmed
 		}
@@ -762,10 +767,16 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	contractAddress = bs.wm.CustomAddressEncodeFunc(contractAddress)
 	contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
 
+	tokenNameResults := make([]interface{}, 0)
+	tokenNameResults = append(tokenNameResults, tokenName)
+	tokenSymbolResults := make([]interface{}, 0)
+	tokenSymbolResults = append(tokenSymbolResults, tokenSymbol)
+	tokenDecimalsResults := make([]interface{}, 0)
+	tokenDecimalsResults = append(tokenDecimalsResults, tokenDecimals)
 	bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
-	bc.Call(&bind.CallOpts{}, &tokenName, "name")
-	bc.Call(&bind.CallOpts{}, &tokenSymbol, "symbol")
-	bc.Call(&bind.CallOpts{}, &tokenDecimals, "decimals")
+	bc.Call(&bind.CallOpts{}, &tokenNameResults, "name")
+	bc.Call(&bind.CallOpts{}, &tokenSymbolResults, "symbol")
+	bc.Call(&bind.CallOpts{}, &tokenDecimalsResults, "decimals")
 
 	coin := openwallet.Coin{
 		Symbol:     bs.wm.Symbol(),
@@ -1053,12 +1064,12 @@ func (bs *BlockScanner) GetScannedBlockHeader() (*openwallet.BlockHeader, error)
 		//就上一个区块链为当前区块
 		blockHeight = blockHeight - 1
 
-		block, err := bs.wm.GetBlockByNum(blockHeight, false)
+		block, err := bs.wm.GetBlockByNum(blockHeight)
 		if err != nil {
 			bs.wm.Log.Errorf("get block spec by block number failed, err=%v", err)
 			return nil, err
 		}
-		hash = block.BlockHash
+		hash = block.Hash.String()
 	}
 
 	return &openwallet.BlockHeader{Height: blockHeight, Hash: hash}, nil
@@ -1079,12 +1090,12 @@ func (bs *BlockScanner) GetCurrentBlockHeader() (*openwallet.BlockHeader, error)
 		return nil, err
 	}
 
-	block, err := bs.wm.GetBlockByNum(blockHeight, false)
+	block, err := bs.wm.GetBlockByNum(blockHeight)
 	if err != nil {
 		bs.wm.Log.Errorf("get block spec by block number failed, err=%v", err)
 		return nil, err
 	}
-	hash = block.BlockHash
+	hash = block.Hash.String()
 
 	return &openwallet.BlockHeader{Height: blockHeight, Hash: hash}, nil
 }

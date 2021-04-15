@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/shopspring/decimal"
@@ -26,11 +27,10 @@ import (
 	"strconv"
 	"time"
 
+	cfxtype "github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/openwallet"
 	ethcom "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type EthTransactionDecoder struct {
@@ -289,8 +289,10 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 func (decoder *EthTransactionDecoder) CreateRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 	if !rawTx.Coin.IsContract {
 		return decoder.CreateSimpleRawTransaction(wrapper, rawTx, nil)
+	}else{
+		return openwallet.Errorf(openwallet.ErrSignRawTransactionFailed, "transaction not support erc20")
 	}
-	return decoder.CreateErc20TokenRawTransaction(wrapper, rawTx)
+	//return decoder.CreateErc20TokenRawTransaction(wrapper, rawTx)
 }
 
 //SignRawTransaction 签名交易单
@@ -365,9 +367,6 @@ func (decoder *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wa
 	from := rawTx.Signatures[rawTx.Account.AccountID][0].Address.Address
 	sig := rawTx.Signatures[rawTx.Account.AccountID][0].Signature
 
-	//decoder.wm.Log.Debug("rawTx.ExtParam:", rawTx.ExtParam)
-
-	signer := types.NewEIP155Signer(big.NewInt(int64(decoder.wm.Config.ChainID)))
 
 	rawHex, err := hex.DecodeString(rawTx.RawHex)
 	if err != nil {
@@ -375,31 +374,20 @@ func (decoder *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wa
 		return nil, err
 	}
 
-	tx := &types.Transaction{}
-	err = rlp.DecodeBytes(rawHex, tx)
+	newSIG := ethcom.FromHex(sig)
+
+
+	utx := cfxtype.UnsignedTransaction{}
+	err = utx.Decode(rawHex, uint32(decoder.wm.Config.ChainID))
 	if err != nil {
-		decoder.wm.Log.Error("transaction RLP decode failed, err:", err)
-		return nil, err
+		decoder.wm.Log.Std.Error("utx.Decode failed, err=%v ", err)
+		return nil, openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "utx.Decode failed. ")
 	}
+	signUtx,_ := utx.EncodeWithSignature(newSIG[64],newSIG[0:32], newSIG[32:64])
 
-	//tx := types.NewTransaction(nonceSigned, ethcom.HexToAddress(to),
-	//	amount, gaslimit.Uint64(), gasPrice, nil)
-	tx, err = tx.WithSignature(signer, ethcom.FromHex(sig))
-	if err != nil {
-		decoder.wm.Log.Std.Error("tx with signature failed, err=%v ", err)
-		return nil, openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "tx with signature failed. ")
-	}
 
-	//txstr, _ := json.MarshalIndent(tx, "", " ")
-	//decoder.wm.Log.Debug("**after signed txStr:", string(txstr))
 
-	rawTxPara, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		decoder.wm.Log.Std.Error("encode tx to rlp failed, err=%v ", err)
-		return nil, openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "encode tx to rlp failed. ")
-	}
-
-	txid, err := decoder.wm.SendRawTransaction(hexutil.Encode(rawTxPara))
+	txid, err := decoder.wm.SendRawTransaction(hexutil.Encode(signUtx))
 	if err != nil {
 		decoder.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
 		//交易失败重置地址nonce
@@ -407,8 +395,10 @@ func (decoder *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wa
 		return nil, openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
 	}
 
+	nonceNow := utx.Nonce.ToInt().Uint64()
+
 	//交易成功，地址nonce+1并记录到缓存
-	decoder.wm.UpdateAddressNonce(wrapper, from, tx.Nonce()+1)
+	decoder.wm.UpdateAddressNonce(wrapper, from, nonceNow+1)
 
 	rawTx.TxID = txid
 	rawTx.IsSubmit = true
@@ -834,20 +824,16 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 		keySignList      = make([]*openwallet.KeySignature, 0)
 		amountStr        string
 		destination      string
-		tx               *types.Transaction
 	)
 
-	isContract := rawTx.Coin.IsContract
-	//contractAddress := rawTx.Coin.Contract.Address
-	//tokenCoin := rawTx.Coin.Contract.Token
-	tokenDecimals := int32(rawTx.Coin.Contract.Decimals)
-	//coinDecimals := decoder.wm.Decimal()
 
 	for k, v := range rawTx.To {
 		destination = k
 		amountStr = v
 		break
 	}
+
+
 
 	//计算账户的实际转账amount
 	accountTotalSentAddresses, findErr := wrapper.GetAddressList(0, -1, "AccountID", rawTx.Account.AccountID, "Address", destination)
@@ -868,7 +854,6 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 
 	rawTx.FeeRate = gasprice.String()
 	rawTx.Fees = totalFeeDecimal.String()
-	//rawTx.ExtParam = string(extparastr)
 	rawTx.TxAmount = accountTotalSent.String()
 	rawTx.TxFrom = txFrom
 	rawTx.TxTo = txTo
@@ -892,51 +877,30 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 		nonce = *tmpNonce
 	}
 
-	//decoder.wm.Log.Debug("chainID:", decoder.wm.GetConfig().ChainID)
-	signer := types.NewEIP155Signer(big.NewInt(int64(decoder.wm.Config.ChainID)))
 
-	gasLimit := fee.GasLimit.Uint64()
+	toCfx := cfxaddress.MustNewFromBase32(destination)
+	amount := common.StringNumToBigIntWithExp(amountStr, decoder.wm.Decimal())
+	fromCfx := cfxaddress.MustNewFromBase32(addrBalance.Address)
 
-	if isContract {
-		//构建合约交易
-		amount := common.StringNumToBigIntWithExp(amountStr, tokenDecimals)
-		if addrBalance.TokenBalance.Cmp(amount) < 0 {
-			return openwallet.Errorf(openwallet.ErrInsufficientTokenBalanceOfAddress, "the token balance: %s is not enough", amountStr)
-			//return openwallet.Errorf("the token balance: %s is not enough", amountStr)
-		}
 
-		if addrBalance.Balance.Cmp(fee.Fee) < 0 {
-			coinBalance := common.BigIntToDecimals(addrBalance.Balance, decoder.wm.Decimal())
-			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
-			//return openwallet.Errorf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
-		}
 
-		tx = types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(rawTx.Coin.Contract.Address)),
-			big.NewInt(0), gasLimit, fee.GasPrice, ethcom.FromHex(callData))
-	} else {
-		//构建CFX交易
-		amount := common.StringNumToBigIntWithExp(amountStr, decoder.wm.Decimal())
-
-		totalAmount := new(big.Int)
-		totalAmount.Add(amount, fee.Fee)
-		if addrBalance.Balance.Cmp(totalAmount) < 0 {
-			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
-			//return openwallet.Errorf("the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
-		}
-
-		tx = types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(destination)),
-			amount, gasLimit, fee.GasPrice, []byte(""))
+	utx, err := decoder.wm.CfxClient.CreateUnsignedTransaction(fromCfx, toCfx, cfxtype.NewBigInt(amount.Uint64()), nil)
+	if err != nil {
+		panic(err)
 	}
 
-	rawHex, err := rlp.EncodeToBytes(tx)
+
+	utx.Nonce = cfxtype.NewBigInt(nonce)
+	rawHex, err := utx.Encode()
 	if err != nil {
-		decoder.wm.Log.Error("Transaction RLP encode failed, err:", err)
+		decoder.wm.Log.Error("rawHex encode failed, err:", err)
 		return openwallet.ConvertError(err)
 	}
-
-	//txstr, _ := json.MarshalIndent(tx, "", " ")
-	//decoder.wm.Log.Debug("**txStr:", string(txstr))
-	msg := signer.Hash(tx)
+	msg,err := utx.Hash()
+	if err != nil{
+		decoder.wm.Log.Error("Transaction UTX Hash failed, err:", err)
+		return openwallet.ConvertError(err)
+	}
 
 	if rawTx.Signatures == nil {
 		rawTx.Signatures = make(map[string][]*openwallet.KeySignature)

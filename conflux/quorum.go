@@ -15,10 +15,11 @@
 package conflux
 
 import (
+	cfxclient "github.com/Conflux-Chain/go-conflux-sdk"
+	"github.com/assetsadapterstore/conflux-adapter/conflux_rpc"
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
-	"github.com/assetsadapterstore/conflux-adapter/conflux_rpc"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 )
@@ -87,6 +88,11 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	}
 
 	wm.RawClient, err = ethclient.Dial(wm.Config.ServerAPI)
+	if err != nil {
+		return err
+	}
+
+	wm.CfxClient, err = cfxclient.NewClient(wm.Config.ServerAPI)
 	if err != nil {
 		return err
 	}

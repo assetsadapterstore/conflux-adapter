@@ -17,20 +17,21 @@ package conflux
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/assetsadapterstore/conflux-adapter/conflux_addrdec"
+	"github.com/assetsadapterstore/conflux-adapter/conflux_rpc"
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
-	"github.com/assetsadapterstore/conflux-adapter/conflux_addrdec"
-	"github.com/assetsadapterstore/conflux-adapter/conflux_rpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"reflect"
-
+	//"reflect"
+	cfxclient "github.com/Conflux-Chain/go-conflux-sdk"
 	//	"log"
 	"math/big"
 	"strings"
@@ -38,7 +39,7 @@ import (
 
 type WalletManager struct {
 	openwallet.AssetsAdapterBase
-
+	CfxClient               *cfxclient.Client
 	RawClient               *ethclient.Client               //原生ETH客户端
 	WalletClient            *conflux_rpc.Client             // 节点客户端
 	Config                  *WalletConfig                   //钱包管理配置
@@ -132,31 +133,14 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	return &tx, nil
 }
 
-func (wm *WalletManager) GetBlockByNum(blockNum uint64, showTransactionSpec bool) (*EthBlock, error) {
-	params := []interface{}{
-		hexutil.EncodeUint64(blockNum),
-		showTransactionSpec,
-	}
-	var ethBlock EthBlock
+func (wm *WalletManager) GetBlockByNum(blockNum uint64) ( *cfxtypes.Block, error) {
 
-	result, err := wm.WalletClient.Call("cfx_getBlockByNumber", params)
+	result, err := wm.CfxClient.GetBlockByEpoch(cfxtypes.NewEpochNumber(cfxtypes.NewBigInt(blockNum)))
 	if err != nil {
 		return nil, err
 	}
 
-	if showTransactionSpec {
-		err = json.Unmarshal([]byte(result.Raw), &ethBlock)
-	} else {
-		err = json.Unmarshal([]byte(result.Raw), &ethBlock.BlockHeader)
-	}
-	if err != nil {
-		return nil, err
-	}
-	ethBlock.BlockHeight, err = hexutil.DecodeUint64(ethBlock.BlockNumber)
-	if err != nil {
-		return nil, err
-	}
-	return &ethBlock, nil
+	return result, nil
 }
 
 func (wm *WalletManager) RecoverUnscannedTransactions(unscannedTxs []*openwallet.UnscanRecord) ([]*BlockTransaction, error) {
@@ -214,7 +198,7 @@ func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr str
 func (wm *WalletManager) GetAddrBalance(address string, sign string) (*big.Int, error) {
 	address = wm.CustomAddressDecodeFunc(address)
 	params := []interface{}{
-		AppendOxToAddress(address),
+		address,
 		sign,
 	}
 	result, err := wm.WalletClient.Call("cfx_getBalance", params)
@@ -231,8 +215,11 @@ func (wm *WalletManager) GetAddrBalance(address string, sign string) (*big.Int, 
 
 // GetBlockNumber
 func (wm *WalletManager) GetBlockNumber() (uint64, error) {
-	param := make([]interface{}, 0)
-	result, err := wm.WalletClient.Call("cfx_blockNumber", param)
+	params := []interface{}{
+		"latest_mined",
+	}
+
+	result, err := wm.WalletClient.Call("cfx_epochNumber", params)
 	if err != nil {
 		return 0, err
 	}
@@ -296,11 +283,12 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 		callMsg["value"] = hexutil.EncodeBig(value)
 	}
 
-	result, err := wm.WalletClient.Call("cfx_estimateGas", []interface{}{callMsg})
+	result, err := wm.WalletClient.Call("cfx_estimateGasAndCollateral", []interface{}{callMsg})
 	if err != nil {
 		return big.NewInt(0), err
 	}
-	gasLimit, err := common.StringValueToBigInt(result.String(), 16)
+	gasLimitStr := result.Get("gasLimit").String()
+	gasLimit, err := common.StringValueToBigInt(gasLimitStr, 16)
 	if err != nil {
 		return big.NewInt(0), fmt.Errorf("convert estimated gas[%v] format to bigint failed, err = %v\n", result.String(), err)
 	}
@@ -323,11 +311,11 @@ func (wm *WalletManager) GetGasPrice() (*big.Int, error) {
 
 func (wm *WalletManager) SetNetworkChainID() (uint64, error) {
 
-	result, err := wm.WalletClient.Call("cfx_chainId", nil)
+	result, err := wm.WalletClient.Call("cfx_getStatus", nil)
 	if err != nil {
 		return 0, err
 	}
-	id, err := hexutil.DecodeUint64(result.String())
+	id, err := hexutil.DecodeUint64(result.Get("chainId").String())
 	if err != nil {
 		return 0, err
 	}
@@ -531,10 +519,10 @@ func removeOxFromHex(value string) string {
 }
 
 // convertStringParamToABIParam string参数转为ABI参数
-func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{}, error){
+func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{}, error) {
 	var (
-		err  error
-		a interface{}
+		err error
+		a   interface{}
 	)
 
 	switch inputType.T {
@@ -566,10 +554,10 @@ func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{
 }
 
 //convertArrayParamToABIParam 数组参数转化
-func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interface{}, error){
+func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interface{}, error) {
 	var (
-		err  error
-		a interface{}
+		err error
+		a   interface{}
 	)
 
 	switch inputType.T {
@@ -647,47 +635,47 @@ func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interfac
 }
 
 func convertParamToNum(param string, abiType abi.Type) (interface{}, error) {
-	var (
-		base int
-		bInt *big.Int
-		err  error
-	)
-	if strings.HasPrefix(param, "0x") {
-		base = 16
-	} else {
-		base = 10
-	}
-	bInt, err = common.StringValueToBigInt(param, base)
-	if err != nil {
-		return nil, err
-	}
+	//var (
+	//base int
+	//bInt *big.Int
+	//err  error
+	//)
+	//if strings.HasPrefix(param, "0x") {
+	//	base = 16
+	//} else {
+	//	base = 10
+	//}
+	//bInt, err = common.StringValueToBigInt(param, base)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	switch abiType.Kind {
-	case reflect.Uint:
-		return uint(bInt.Uint64()), nil
-	case reflect.Uint8:
-		return uint8(bInt.Uint64()), nil
-	case reflect.Uint16:
-		return uint16(bInt.Uint64()), nil
-	case reflect.Uint32:
-		return uint32(bInt.Uint64()), nil
-	case reflect.Uint64:
-		return uint64(bInt.Uint64()), nil
-	case reflect.Int:
-		return int(bInt.Int64()), nil
-	case reflect.Int8:
-		return int8(bInt.Int64()), nil
-	case reflect.Int16:
-		return int16(bInt.Int64()), nil
-	case reflect.Int32:
-		return int32(bInt.Int64()), nil
-	case reflect.Int64:
-		return int64(bInt.Int64()), nil
-	case reflect.Ptr:
-		return bInt, nil
-	default:
-		return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
-	}
+	//switch abiType.Kind {
+	//case reflect.Uint:
+	//	return uint(bInt.Uint64()), nil
+	//case reflect.Uint8:
+	//	return uint8(bInt.Uint64()), nil
+	//case reflect.Uint16:
+	//	return uint16(bInt.Uint64()), nil
+	//case reflect.Uint32:
+	//	return uint32(bInt.Uint64()), nil
+	//case reflect.Uint64:
+	//	return uint64(bInt.Uint64()), nil
+	//case reflect.Int:
+	//	return int(bInt.Int64()), nil
+	//case reflect.Int8:
+	//	return int8(bInt.Int64()), nil
+	//case reflect.Int16:
+	//	return int16(bInt.Int64()), nil
+	//case reflect.Int32:
+	//	return int32(bInt.Int64()), nil
+	//case reflect.Int64:
+	//	return int64(bInt.Int64()), nil
+	//case reflect.Ptr:
+	//	return bInt, nil
+	//default:
+	return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
+	//}
 }
 
 func CustomAddressEncode(address string) string {
