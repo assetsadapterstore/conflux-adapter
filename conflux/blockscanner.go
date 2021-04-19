@@ -341,6 +341,7 @@ func (bs *BlockScanner) newExtractDataNotify(height uint64, extractDataList map[
 			}
 		}
 
+		/**
 		for key, data := range extractContractData {
 			err := o.BlockExtractSmartContractDataNotify(key, data)
 			if err != nil {
@@ -353,6 +354,7 @@ func (bs *BlockScanner) newExtractDataNotify(height uint64, extractDataList map[
 				}
 			}
 		}
+		 */
 	}
 
 	return nil
@@ -613,7 +615,7 @@ func (bs *BlockScanner) ExtractTransaction(tx *BlockTransaction) ExtractResult {
 	bs.extractBaseTransaction(tx, &result)
 
 	// 提取智能合约交易单
-	bs.extractSmartContractTransaction(tx, &result)
+	//bs.extractSmartContractTransaction(tx, &result)
 
 	return result
 }
@@ -639,6 +641,7 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 		result.extractData[sourceKey] = extractDataArray
 	}
 
+	/*
 	//提取代币交易单
 	for contractAddress, tokenEventArray := range tokenEvent {
 		//提出主币交易单
@@ -652,6 +655,8 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 			result.extractData[sourceKey] = extractDataArray
 		}
 	}
+
+	 */
 }
 
 //extractCFXTransaction 提取主币交易单

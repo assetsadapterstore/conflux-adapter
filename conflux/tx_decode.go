@@ -884,7 +884,7 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 
 
 
-	utx, err := decoder.wm.CfxClient.CreateUnsignedTransaction(fromCfx, toCfx, cfxtype.NewBigInt(amount.Uint64()), nil)
+	utx, err := decoder.wm.CfxClient.CreateUnsignedTransaction(fromCfx, toCfx, cfxtype.NewBigIntByRaw(amount), nil)
 	if err != nil {
 		decoder.wm.Log.Error("CreateUnsignedTransaction failed, err:", err)
 		return openwallet.ConvertError(err)

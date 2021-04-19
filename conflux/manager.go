@@ -17,7 +17,6 @@ package conflux
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	cfxclient "github.com/Conflux-Chain/go-conflux-sdk"
@@ -112,28 +111,14 @@ func (wm *WalletManager) GetTransactionReceipt(transactionId string) (*Transacti
 }
 
 func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, error) {
-	params := []interface{}{
-		AppendOxToAddress(txid),
-	}
 
-	var tx BlockTransaction
-	result, err := wm.WalletClient.Call("cfx_getTransactionByHash", params)
+	transaction, err := wm.CfxClient.GetTransactionByHash(cfxtypes.Hash(txid))
+
 	if err != nil {
 		return nil, err
 	}
-
-	err = json.Unmarshal([]byte(result.Raw), &tx)
-	if err != nil {
-		return nil, err
-	}
-	blockHeight, err := hexutil.DecodeUint64(tx.BlockNumber)
-	if err != nil {
-		blockHeight = 0
-	}
-	tx.BlockHeight = blockHeight
-	tx.From = wm.CustomAddressEncodeFunc(tx.From)
-	tx.To = wm.CustomAddressEncodeFunc(tx.To)
-	return &tx, nil
+	tx := CreateBlockTransaction(transaction)
+	return tx, nil
 }
 
 func (wm *WalletManager) GetBlockByNum(blockNum uint64) (*cfxtypes.Block, error) {

@@ -196,17 +196,28 @@ type BlockTransaction struct {
 	decimal          int32
 }
 
-func CreateBlockTransaction(transaction cfxtypes.Transaction) *BlockTransaction {
-	return &BlockTransaction{
-		Hash:             transaction.Hash.String(),
-		BlockNumber:      transaction.EpochHeight.String(),
-		From:             transaction.From.String(),
-		To:               transaction.To.String(),
-		Gas:              transaction.Gas.String(),
-		GasPrice:         transaction.GasPrice.String(),
-		Value:            transaction.Value.String(),
-		TransactionIndex: transaction.TransactionIndex.String(),
+func CreateBlockTransaction(transaction *cfxtypes.Transaction) *BlockTransaction {
+	temp := &BlockTransaction{
+		Hash:        transaction.Hash.String(),
+		BlockNumber: transaction.EpochHeight.String(),
+		From:        transaction.From.MustGetBase32Address(),
+		To:          transaction.To.MustGetBase32Address(),
+		Gas:         transaction.Gas.String(),
+		GasPrice:    transaction.GasPrice.String(),
+		Value:       transaction.Value.String(),
+
+		//TransactionIndex: transaction.TransactionIndex.String(),
 	}
+
+	if transaction.Status != nil {
+		if transaction.Status.String() == "0x0" {
+			temp.Status = uint64(1)
+		}
+	}
+	if transaction.TransactionIndex != nil {
+		temp.TransactionIndex = transaction.TransactionIndex.String()
+	}
+	return temp
 }
 
 func CreateBlockTransactionList(transactions []cfxtypes.Transaction) []*BlockTransaction {

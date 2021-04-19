@@ -120,17 +120,18 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer_CFX(t *testing.T) {
 
 	addrs := []string{
+
 		//"cfx:aan1wtmwdpr2tkzjn6wr6r2sw7h67mr9sa3rmnm58r",
 		"cfx:aajpjd796x2vae1pvfmwk6tj38mj1vbv0pvejapmrh",
-		"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
-		"cfx:aat3ubbh4069rknr6x5xj7203k4rkgmnxan6m1zkte",
-		"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz",
-		"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv",
-		"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89",
-		"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
-		"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
-		"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
-		"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
+		//"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
+		//"cfx:aat3ubbh4069rknr6x5xj7203k4rkgmnxan6m1zkte",
+		//"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz",
+		//"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv",
+		//"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89",
+		//"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
+		//"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
+		//"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
+		//"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
 	}
 
 	tm := testInitWalletManager()
@@ -138,10 +139,13 @@ func TestTransfer_CFX(t *testing.T) {
 	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
 	accountID := "GpyZC7ZdfjYCRCVw9itgn1CGwR7rLFkXaz8TaV2zMeCu"
 
+
+
+
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.1", "", nil, nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "9.123456789012345678", "", nil, nil)
 		if err != nil {
 			return
 		}
@@ -179,8 +183,8 @@ func TestTransfer_ERC20(t *testing.T) {
 	}
 
 	tm := testInitWalletManager()
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	accountID := "CBGfADJdeDDPKh7wywxDrmkTJzxGjAQJyT4hVD44bvLE"
+	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
+	accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
 
 	contract := openwallet.SmartContract{
 		Address:  "0x627b11ead4eb39ebe61a70ab3d6fe145e5d06ab6",
@@ -263,6 +267,7 @@ func TestSummary_CFX(t *testing.T) {
 
 }
 
+/*
 func TestSummary_ERC20(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "WBGYxZ6yEX582Mx8mGvygXevdLVc7NQnLM"
@@ -320,3 +325,4 @@ func TestSummary_ERC20(t *testing.T) {
 	}
 
 }
+*/

@@ -105,9 +105,8 @@ func TestWalletManager_GetTransactionByWxID(t *testing.T) {
 
 func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	accountID := "CBGfADJdeDDPKh7wywxDrmkTJzxGjAQJyT4hVD44bvLE"
-	//accountID := "3xLbreE3asBRVCCk13Y9V4NzjyijXdx8sb6k54TmQkFg"
+	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
+	accountID := "GpyZC7ZdfjYCRCVw9itgn1CGwR7rLFkXaz8TaV2zMeCu"
 	balance, err := tm.GetAssetsAccountBalance(testApp, walletID, accountID)
 	if err != nil {
 		log.Error("GetAssetsAccountBalance failed, unexpected error:", err)
@@ -118,9 +117,8 @@ func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 
 func TestWalletManager_GetAssetsAccountTokenBalance(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	//accountID := "CBGfADJdeDDPKh7wywxDrmkTJzxGjAQJyT4hVD44bvLE"
-	accountID := "EPByoz99UbLvLTdrnckHHDfF5NrRTNtfagBxRdStoKHL"
+	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
+	accountID := "GpyZC7ZdfjYCRCVw9itgn1CGwR7rLFkXaz8TaV2zMeCu"
 
 	contract := openwallet.SmartContract{
 		Address:  "0x627b11ead4eb39ebe61a70ab3d6fe145e5d06ab6",
@@ -141,7 +139,7 @@ func TestWalletManager_GetAssetsAccountTokenBalance(t *testing.T) {
 func TestWalletManager_GetEstimateFeeRate(t *testing.T) {
 	tm := testInitWalletManager()
 	coin := openwallet.Coin{
-		Symbol: "VSYS",
+		Symbol: "CFX",
 	}
 	feeRate, unit, err := tm.GetEstimateFeeRate(coin)
 	if err != nil {
@@ -169,13 +167,13 @@ func TestGetAddressVerify(t *testing.T) {
 	assetsMgr.LoadAssetsConfig(c)
 	addrDec := assetsMgr.GetAddressDecoderV2()
 
-	flag := addrDec.AddressVerify("0x4402a2969da0689a0e6f5fbad8be930430b4ad63af25f3c93dbd03bb40908d08")
+	flag := addrDec.AddressVerify("0x109d1C70101E56bD7408c82a65C8d78060D97548")
 	log.Infof("flag: %v, expect: false", flag)
 
-	flag = addrDec.AddressVerify("6541a59bd17cf20f058e8b5377f034a32843410f")
+	flag = addrDec.AddressVerify("cfx:aajk4hducatfrtnybdecy3sj48agb0nzkan2jkvhz1")
 	log.Infof("flag: %v, expect: false", flag)
 
-	flag = addrDec.AddressVerify("0x6541a59bd17cf20f058e8b5377f034a32843410f")
+	flag = addrDec.AddressVerify("cfx:aajk4hducatfrtnybdecy3sj48agb0nzkan2jkvhz0")
 	log.Infof("flag: %v, expect: true", flag)
 
 }

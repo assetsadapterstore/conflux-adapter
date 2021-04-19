@@ -120,7 +120,6 @@ func TestGetBlockNumber(t *testing.T) {
 
 func TestGetBlockByHash(t *testing.T) {
 
-
 	wm := testNewWalletManager()
 	reuslt, err := wm.GetBlockByHash("0x8c518b07b9dea3271c3a56398c717de95d3d4062f679dbe2b35a9e3f1fd33024")
 	if err != nil {
