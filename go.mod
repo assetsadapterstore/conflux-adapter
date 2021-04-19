@@ -13,4 +13,5 @@ require (
 	github.com/imroc/req v0.3.0
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/tidwall/gjson v1.5.0
+	google.golang.org/protobuf v1.23.0
 )

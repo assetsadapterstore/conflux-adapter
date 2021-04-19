@@ -73,8 +73,9 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 		symbol     = "CFX"
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
-			"0x76b932e7ef077eabebe8a5064b99120ec81299ca": "sender",
-			"0x1c63c5c3f5a18cef5e2996a7c41fe933c7e9cffa": "receiver",
+			"cfx:aat0v7ux5zkgdbff817uv2bye3djvcejvakkdshjm2": "sender",
+			"cfx:aan1wtmwdpr2tkzjn6wr6r2sw7h67mr9sa3rmnm58r": "receiver",
+			"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa":"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
 		}
 	)
 
@@ -90,7 +91,7 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	//scanner.SetRescanBlockHeight(25470)
+	scanner.SetRescanBlockHeight(12809395)
 	scanner.Run()
 
 	<-endRunning

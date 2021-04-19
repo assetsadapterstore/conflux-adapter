@@ -17,6 +17,7 @@ package conflux
 import (
 	"encoding/json"
 	"fmt"
+	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -58,6 +59,15 @@ func (block *EthBlock) CreateOpenWalletBlockHeader() *openwallet.BlockHeader {
 	return header
 }
 
+type BlockArray struct {
+	Height string `json:"height" storm:"id"`
+	Hashes string `json:"hashes" storm:"hashes"`
+}
+
+//func(b *BlockArray) BlocksToStrArray() []string{
+//hex.De
+//}
+
 type ERC20Token struct {
 	Address  string `json:"address" storm:"id"`
 	Symbol   string `json:"symbol" storm:"index"`
@@ -97,6 +107,10 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 		transferEvents = make(map[string][]*TransferEvent)
 		err            error
 	)
+
+	if receipt == nil {
+		return transferEvents
+	}
 
 	bc := bind.NewBoundContract(ethcom.HexToAddress("0x0"), ERC20_ABI, nil, nil, nil)
 	for _, log := range receipt.ETHReceipt.Logs {
@@ -182,18 +196,67 @@ type BlockTransaction struct {
 	decimal          int32
 }
 
+func CreateBlockTransaction(transaction cfxtypes.Transaction) *BlockTransaction {
+	return &BlockTransaction{
+		Hash:             transaction.Hash.String(),
+		BlockNumber:      transaction.EpochHeight.String(),
+		From:             transaction.From.String(),
+		To:               transaction.To.String(),
+		Gas:              transaction.Gas.String(),
+		GasPrice:         transaction.GasPrice.String(),
+		Value:            transaction.Value.String(),
+		TransactionIndex: transaction.TransactionIndex.String(),
+	}
+}
+
+func CreateBlockTransactionList(transactions []cfxtypes.Transaction) []*BlockTransaction {
+	blockTransactions := make([]*BlockTransaction, 0)
+	if len(transactions) > 0 {
+		for _, transaction := range transactions {
+			temp := &BlockTransaction{
+				Hash:        transaction.Hash.String(),
+				BlockNumber: transaction.EpochHeight.String(),
+				From:        transaction.From.MustGetBase32Address(),
+				To:          transaction.To.MustGetBase32Address(),
+				Gas:         transaction.Gas.String(),
+				GasPrice:    transaction.GasPrice.String(),
+				Value:       transaction.Value.String(),
+
+				//TransactionIndex: transaction.TransactionIndex.String(),
+			}
+
+			if transaction.Status != nil {
+				if transaction.Status.String() == "0x0" {
+					temp.Status = uint64(1)
+				}
+			}
+			if transaction.TransactionIndex != nil {
+				temp.TransactionIndex = transaction.TransactionIndex.String()
+			}
+			//if transaction.Status.String() != "0x0" {
+			//	continue
+			//}
+
+			blockTransactions = append(blockTransactions, temp)
+
+		}
+	}
+
+	return blockTransactions
+}
+
 func (this *BlockTransaction) GetAmountEthString() string {
 	amount, _ := hexutil.DecodeBig(this.Value)
-	amountVal := common.BigIntToDecimals(amount, this.decimal)
+	amountVal := common.BigIntToDecimals(amount, 0)
 	return amountVal.String()
 }
 
 func (this *BlockTransaction) GetTxFeeEthString() string {
 	gasPrice, _ := hexutil.DecodeBig(this.GasPrice)
-	gas := common.StringNumToBigIntWithExp(this.Gas, 0)
+	gas, _ := hexutil.DecodeBig(this.Gas)
 	fee := big.NewInt(0)
 	fee.Mul(gasPrice, gas)
-	feeprice := common.BigIntToDecimals(fee, this.decimal)
+	feeprice := common.BigIntToDecimals(fee, 0)
 	return feeprice.String()
 }
 

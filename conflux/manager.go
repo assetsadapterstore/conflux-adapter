@@ -15,8 +15,13 @@
 package conflux
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	cfxclient "github.com/Conflux-Chain/go-conflux-sdk"
+	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/assetsadapterstore/conflux-adapter/conflux_addrdec"
 	"github.com/assetsadapterstore/conflux-adapter/conflux_rpc"
 	"github.com/blocktree/go-owcrypt"
@@ -28,12 +33,10 @@ import (
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	//"reflect"
-	cfxclient "github.com/Conflux-Chain/go-conflux-sdk"
-	//	"log"
+	"github.com/shopspring/decimal"
 	"math/big"
+	"sort"
 	"strings"
 )
 
@@ -133,7 +136,7 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	return &tx, nil
 }
 
-func (wm *WalletManager) GetBlockByNum(blockNum uint64) ( *cfxtypes.Block, error) {
+func (wm *WalletManager) GetBlockByNum(blockNum uint64) (*cfxtypes.Block, error) {
 
 	result, err := wm.CfxClient.GetBlockByEpoch(cfxtypes.NewEpochNumber(cfxtypes.NewBigInt(blockNum)))
 	if err != nil {
@@ -143,6 +146,108 @@ func (wm *WalletManager) GetBlockByNum(blockNum uint64) ( *cfxtypes.Block, error
 	return result, nil
 }
 
+func (wm *WalletManager) GetBlockSummaryByNum(blockNum uint64) (*cfxtypes.BlockSummary, error) {
+
+	result, err := wm.CfxClient.GetBlockSummaryByEpoch(cfxtypes.NewEpochNumber(cfxtypes.NewBigInt(blockNum)))
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func encodeKey(cids []string) []byte {
+	buffer := new(bytes.Buffer)
+	for _, c := range cids {
+		// bytes.Buffer.Write() err is documented to be always nil.
+		_, _ = buffer.Write([]byte(c))
+	}
+
+	newHash := owcrypt.Hash(buffer.Bytes(), 0, owcrypt.HASH_ALG_SHA256)
+	return newHash
+}
+
+func (wm *WalletManager) GetTransByNum(blockNum uint64) ([]cfxtypes.Transaction, error) {
+
+	result, err := wm.CfxClient.GetBlocksByEpoch(cfxtypes.NewEpochNumber(cfxtypes.NewBigInt(blockNum)))
+	if err != nil {
+		return nil, err
+	}
+	transList := make([]cfxtypes.Transaction, 0)
+	if len(result) > 0 {
+		for _, v := range result {
+			block, err := wm.GetBlockByHash(v.String())
+			if err != nil {
+				//查找不到直接continue
+				return nil,errors.New("can't find block" + v.String())
+			}
+			risk,err := wm.CfxClient.GetRawBlockConfirmationRisk(v)
+			if err != nil{
+				return nil,errors.New("can't find block risk" + v.String())
+			}
+			riskDecimal := decimal.NewFromBigInt(risk.ToInt(),0)
+			safe,_ :=  decimal.NewFromString("115792089237316195423570985008687907853269984665640564039457584007913129639936")
+			safe = safe.Sub(decimal.NewFromInt(1))
+			if riskDecimal.Div(safe).LessThanOrEqual(decimal.NewFromInt(1).Shift(-8)){
+				transList = append(transList, block.Transactions...)
+			}
+
+		}
+	}
+	return transList, nil
+}
+
+func (wm *WalletManager) GetBlockHashesByNum(blockNum uint64) (*openwallet.BlockHeader, []string, error) {
+
+	result, err := wm.CfxClient.GetBlocksByEpoch(cfxtypes.NewEpochNumber(cfxtypes.NewBigInt(blockNum)))
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(result) > 0 {
+		hashStr := make([]string, 0)
+		pHashStr := make([]string, 0)
+		pHash := make(map[string]string)
+		for _, v := range result {
+			hashStr = append(hashStr, v.String())
+			block, err := wm.GetBlockByHash(v.String())
+			if err != nil {
+				//查找不到直接continue
+				continue
+			}
+			pHash[block.ParentHash.String()] = block.ParentHash.String()
+
+		}
+		if len(pHash) == 0 {
+			return nil, nil, errors.New("can't find any block by parent")
+		}
+		for _, v := range pHash {
+			pHashStr = append(pHashStr, v)
+		}
+
+		sort.Strings(pHashStr)
+		sort.Strings(hashStr)
+		header := &openwallet.BlockHeader{
+			Hash:              hex.EncodeToString(encodeKey(hashStr)),
+			Previousblockhash: hex.EncodeToString(encodeKey(pHashStr)),
+			Height:            blockNum,
+		}
+		return header, hashStr, nil
+		//return hex.EncodeToString(encodeKey(result)), hashStr, nil
+	}
+
+	return nil, nil, errors.New("can't find any block")
+}
+
+func (wm *WalletManager) GetBlockByHash(hash string) (*cfxtypes.Block, error) {
+
+	result, err := wm.CfxClient.GetBlockByHash(cfxtypes.Hash(hash))
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
+}
 func (wm *WalletManager) RecoverUnscannedTransactions(unscannedTxs []*openwallet.UnscanRecord) ([]*BlockTransaction, error) {
 	allTxs := make([]*BlockTransaction, 0, len(unscannedTxs))
 	for _, unscanned := range unscannedTxs {
@@ -216,7 +321,7 @@ func (wm *WalletManager) GetAddrBalance(address string, sign string) (*big.Int, 
 // GetBlockNumber
 func (wm *WalletManager) GetBlockNumber() (uint64, error) {
 	params := []interface{}{
-		"latest_mined",
+		"latest_confirmed",
 	}
 
 	result, err := wm.WalletClient.Call("cfx_epochNumber", params)
@@ -276,7 +381,11 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 	callMsg := map[string]interface{}{
 		"from": wm.CustomAddressDecodeFunc(from),
 		"to":   wm.CustomAddressDecodeFunc(to),
-		"data": hexutil.Encode(data),
+
+	}
+
+	if data != nil{
+		callMsg["data"] =  hexutil.Encode(data)
 	}
 
 	if value != nil {

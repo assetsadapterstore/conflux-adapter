@@ -114,11 +114,16 @@ func (bs *BlockScanner) newBlockNotify(block *cfxtypes.Block, isFork bool) {
 func (bs *BlockScanner) ScanBlock(height uint64) error {
 	curBlock, err := bs.wm.GetBlockByNum(height)
 	if err != nil {
-		bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
+		bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed, err = %v", err)
 		return err
 	}
-
-	err = bs.BatchExtractTransaction(height, curBlock.Transactions)
+	transTemp,err := bs.wm.GetTransByNum(height)
+	if err != nil{
+		bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed,GetTransByNum is nil", err)
+		return err
+	}
+	transList := CreateBlockTransactionList(transTemp)
+	err = bs.BatchExtractTransaction(height, transList)
 	if err != nil {
 		bs.wm.Log.Errorf("BatchExtractTransaction failed, err = %v", err)
 		return err
@@ -170,7 +175,13 @@ func (bs *BlockScanner) RescanFailedRecord() {
 			continue
 		}
 
-		batchErr := bs.BatchExtractTransaction(block.Height.ToInt().Uint64(), block.Transactions)
+		transTemp,err := bs.wm.GetTransByNum(height)
+		if err != nil{
+			bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed,GetTransByNum is nil", err)
+			continue
+		}
+		transList := CreateBlockTransactionList(transTemp)
+		batchErr := bs.BatchExtractTransaction(block.Height.ToInt().Uint64(), transList)
 		if batchErr != nil {
 			bs.wm.Log.Std.Info("block scanner can not extractRechargeRecords; unexpected error: %v", batchErr)
 			continue
@@ -192,7 +203,7 @@ func (bs *BlockScanner) ScanBlockTask() {
 
 	curBlockHeight := blockHeader.Height
 	curBlockHash := blockHeader.Hash
-	var previousHeight uint64 = 0
+	//var previousHeight uint64 = 0
 	for {
 
 		if !bs.Scanning {
@@ -218,59 +229,77 @@ func (bs *BlockScanner) ScanBlockTask() {
 
 		curBlock, err := bs.wm.GetBlockByNum(curBlockHeight)
 		if err != nil {
-			bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
+			bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed, err = %v", err)
 			break
 		}
 
 		isFork := false
 
+		if curBlock == nil{
+			bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed,curBlock is nil", err)
+			break
+		}
+
+
+		transTemp,err := bs.wm.GetTransByNum(curBlockHeight)
+		if err != nil{
+			bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed,GetTransByNum is nil", err)
+			break
+		}
+
+
+		transList := CreateBlockTransactionList(transTemp)
+
+
 		if curBlock.ParentHash.String() != curBlockHash {
-			previousHeight = curBlockHeight - 1
-			bs.wm.Log.Infof("block has been fork on height: %v.", curBlockHeight)
-			bs.wm.Log.Infof("block height: %v local hash = %v ", previousHeight, curBlockHash)
-			bs.wm.Log.Infof("block height: %v mainnet hash = %v ", previousHeight, curBlock.ParentHash.String())
+			//previousHeight = curBlockHeight - 1
+			//bs.wm.Log.Infof("block has been fork on height: %v.", curBlockHeight)
+			//bs.wm.Log.Infof("block height: %v local hash = %v ", previousHeight, curBlockHash)
+			//bs.wm.Log.Infof("block height: %v mainnet hash = %v ", previousHeight, curBlock.ParentHash.String())
+			//
+			//bs.wm.Log.Infof("delete recharge records on block height: %v.", previousHeight)
+			//
+			////查询本地分叉的区块
+			//forkBlock, _ := bs.GetLocalBlock(previousHeight)
+			//
+			//bs.DeleteUnscanRecord(previousHeight)
+			//
+			//curBlockHeight = previousHeight - 1 //倒退2个区块重新扫描
+			//
+			////这里本地改个临时转换
+			//localCurBlock, err := bs.GetLocalBlock(curBlockHeight)
+			//if err != nil {
+			//	bs.wm.Log.Std.Error("block scanner can not get local block; unexpected error: %v", err)
+			//	bs.wm.Log.Info("block scanner prev block height:", curBlockHeight)
+			//
+			//	curBlock, err = bs.wm.GetBlockByNum(curBlockHeight)
+			//	if err != nil {
+			//		bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum  failed, block number=%v, err=%v", curBlockHeight, err)
+			//		break
+			//	}
+			//}
+			//
+			//curBlockHash = localCurBlock.Hash.String()
+			//bs.wm.Log.Infof("rescan block on height:%v, hash:%v.", curBlockHeight, curBlockHash)
+			//
+			//err = bs.SaveLocalBlockHead(localCurBlock.Height.ToInt().Uint64(), localCurBlock.Hash.String())
+			//if err != nil {
+			//	bs.wm.Log.Errorf("save local block unscaned failed, err=%v", err)
+			//	break
+			//}
 
-			bs.wm.Log.Infof("delete recharge records on block height: %v.", previousHeight)
+			//isFork = true
 
-			//查询本地分叉的区块
-			forkBlock, _ := bs.GetLocalBlock(previousHeight)
-
-			bs.DeleteUnscanRecord(previousHeight)
-
-			curBlockHeight = previousHeight - 1 //倒退2个区块重新扫描
-
-			//这里本地改个临时转换
-			localCurBlock, err := bs.GetLocalBlock(curBlockHeight)
-			if err != nil {
-				bs.wm.Log.Std.Error("block scanner can not get local block; unexpected error: %v", err)
-				bs.wm.Log.Info("block scanner prev block height:", curBlockHeight)
-
-				curBlock, err = bs.wm.GetBlockByNum(curBlockHeight)
-				if err != nil {
-					bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum  failed, block number=%v, err=%v", curBlockHeight, err)
-					break
-				}
-			}
-
-			curBlockHash = localCurBlock.Hash.String()
-			bs.wm.Log.Infof("rescan block on height:%v, hash:%v.", curBlockHeight, curBlockHash)
-
-			err = bs.SaveLocalBlockHead(localCurBlock.Height.ToInt().Uint64(), localCurBlock.Hash.String())
-			if err != nil {
-				bs.wm.Log.Errorf("save local block unscaned failed, err=%v", err)
-				break
-			}
-
-			isFork = true
-
-			if forkBlock != nil {
+			//if forkBlock != nil {
 
 				//通知分叉区块给观测者，异步处理
-				bs.newBlockNotify(forkBlock, isFork)
-			}
+				//bs.newBlockNotify(forkBlock, isFork)
+			//}
 
 		} else {
-			err = bs.BatchExtractTransaction(curBlock.Height.ToInt().Uint64(), curBlock.Transactions)
+
+
+			err = bs.BatchExtractTransaction(curBlock.Height.ToInt().Uint64(), transList)
 			if err != nil {
 				bs.wm.Log.Errorf("block scanner can not extractRechargeRecords; unexpected error: %v", err)
 				break
@@ -282,6 +311,7 @@ func (bs *BlockScanner) ScanBlockTask() {
 			isFork = false
 
 			bs.newBlockNotify(curBlock, isFork)
+
 		}
 
 		curBlockHeight = curBlock.Height.ToInt().Uint64()
@@ -518,7 +548,7 @@ func (bs *BlockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Ba
 			return
 		}
 
-		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "latest_state")
+		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "latest_checkpoint")
 		if err != nil {
 			balanceAll = balanceConfirmed
 		}
@@ -599,7 +629,7 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 	}
 
 	//提出主币交易单
-	extractData := bs.extractETHTransaction(tx, isTokenTransfer)
+	extractData := bs.extractCFXTransaction(tx, isTokenTransfer)
 	for sourceKey, data := range extractData {
 		extractDataArray := result.extractData[sourceKey]
 		if extractDataArray == nil {
@@ -624,8 +654,8 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 	}
 }
 
-//extractETHTransaction 提取主币交易单
-func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTransfer bool) map[string]*openwallet.TxExtractData {
+//extractCFXTransaction 提取主币交易单
+func (bs *BlockScanner) extractCFXTransaction(tx *BlockTransaction, isTokenTransfer bool) map[string]*openwallet.TxExtractData {
 
 	txExtractMap := make(map[string]*openwallet.TxExtractData)
 	from := tx.From
@@ -1057,7 +1087,7 @@ func (bs *BlockScanner) GetScannedBlockHeader() (*openwallet.BlockHeader, error)
 	if blockHeight == 0 {
 		blockHeight, err = bs.wm.GetBlockNumber()
 		if err != nil {
-			bs.wm.Log.Errorf("EthGetBlockNumber failed, err=%v", err)
+			bs.wm.Log.Errorf("CfxGetBlockNumber failed, err=%v", err)
 			return nil, err
 		}
 
@@ -1086,7 +1116,7 @@ func (bs *BlockScanner) GetCurrentBlockHeader() (*openwallet.BlockHeader, error)
 
 	blockHeight, err = bs.wm.GetBlockNumber()
 	if err != nil {
-		bs.wm.Log.Errorf("EthGetBlockNumber failed, err=%v", err)
+		bs.wm.Log.Errorf("CfxGetBlockNumber failed, err=%v", err)
 		return nil, err
 	}
 

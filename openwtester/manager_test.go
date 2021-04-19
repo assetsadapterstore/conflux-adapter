@@ -75,7 +75,7 @@ func TestWalletManager_CreateAssetsAccount(t *testing.T) {
 	tm := testInitWalletManager()
 
 	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
-	account := &openwallet.AssetsAccount{Alias: "admin", WalletID: walletID, Required: 1, Symbol: "CFX", IsTrust: true}
+	account := &openwallet.AssetsAccount{Alias: "admin2", WalletID: walletID, Required: 1, Symbol: "CFX", IsTrust: true}
 	account, address, err := tm.CreateAssetsAccount(testApp, walletID, "12345678", account, nil)
 	if err != nil {
 		log.Error(err)
@@ -112,8 +112,8 @@ func TestWalletManager_CreateAddress(t *testing.T) {
 	tm := testInitWalletManager()
 
 	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
-	accountID := "GpyZC7ZdfjYCRCVw9itgn1CGwR7rLFkXaz8TaV2zMeCu"
-	address, err := tm.CreateAddress(testApp, walletID, accountID, 5)
+	accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
+	address, err := tm.CreateAddress(testApp, walletID, accountID, 10)
 	if err != nil {
 		log.Error(err)
 		return

@@ -53,29 +53,17 @@ func (dec *AddressDecoderV2) AddressEncode(hash []byte, opts ...interface{}) (st
 	real := common.HexToAddress(address)
 	real[0] = real[0]&0x1f | 0x10
 
-	caddress,err := cfxaddress.New(real.Hex(),1029)
-	if err != nil{
-		return "",err
+	caddress, err := cfxaddress.New(real.Hex(), 1029)
+	if err != nil {
+		return "", err
 	}
 	return caddress.MustGetBase32Address(), nil
 }
 
 // AddressVerify 地址校验
 func (dec *AddressDecoderV2) AddressVerify(address string, opts ...interface{}) bool {
-	if address == "" {
-		return false
-	}
-
-	if strings.Index(address, "0x") != 0 {
-		return false
-	}
-
-	addrByte, err := hex.DecodeString(address[2:])
+	_, err := cfxaddress.NewFromBase32(address)
 	if err != nil {
-		return false
-	}
-
-	if len(addrByte) != 20 {
 		return false
 	}
 
