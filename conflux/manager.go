@@ -117,7 +117,7 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	if err != nil {
 		return nil, err
 	}
-	tx := CreateBlockTransaction(transaction)
+	tx := CreateBlockTransaction(transaction,wm.Decimal())
 	return tx, nil
 }
 

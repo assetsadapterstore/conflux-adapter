@@ -196,16 +196,17 @@ type BlockTransaction struct {
 	decimal          int32
 }
 
-func CreateBlockTransaction(transaction *cfxtypes.Transaction) *BlockTransaction {
+func CreateBlockTransaction(transaction *cfxtypes.Transaction, decimal int32) *BlockTransaction {
 	temp := &BlockTransaction{
 		Hash:        transaction.Hash.String(),
+		BlockHash:   transaction.BlockHash.String(),
 		BlockNumber: transaction.EpochHeight.String(),
 		From:        transaction.From.MustGetBase32Address(),
 		To:          transaction.To.MustGetBase32Address(),
 		Gas:         transaction.Gas.String(),
 		GasPrice:    transaction.GasPrice.String(),
 		Value:       transaction.Value.String(),
-
+		decimal:     decimal,
 		//TransactionIndex: transaction.TransactionIndex.String(),
 	}
 
@@ -220,7 +221,7 @@ func CreateBlockTransaction(transaction *cfxtypes.Transaction) *BlockTransaction
 	return temp
 }
 
-func CreateBlockTransactionList(transactions []cfxtypes.Transaction) []*BlockTransaction {
+func CreateBlockTransactionList(transactions []cfxtypes.Transaction, decimal int32) []*BlockTransaction {
 	blockTransactions := make([]*BlockTransaction, 0)
 	if len(transactions) > 0 {
 		for _, transaction := range transactions {
@@ -230,9 +231,10 @@ func CreateBlockTransactionList(transactions []cfxtypes.Transaction) []*BlockTra
 				From:        transaction.From.MustGetBase32Address(),
 				To:          transaction.To.MustGetBase32Address(),
 				Gas:         transaction.Gas.String(),
+				BlockHash:   transaction.BlockHash.String(),
 				GasPrice:    transaction.GasPrice.String(),
 				Value:       transaction.Value.String(),
-
+				decimal:     decimal,
 				//TransactionIndex: transaction.TransactionIndex.String(),
 			}
 

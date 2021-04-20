@@ -122,7 +122,7 @@ func (bs *BlockScanner) ScanBlock(height uint64) error {
 		bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed,GetTransByNum is nil", err)
 		return err
 	}
-	transList := CreateBlockTransactionList(transTemp)
+	transList := CreateBlockTransactionList(transTemp,bs.wm.Decimal())
 	err = bs.BatchExtractTransaction(height, transList)
 	if err != nil {
 		bs.wm.Log.Errorf("BatchExtractTransaction failed, err = %v", err)
@@ -180,7 +180,7 @@ func (bs *BlockScanner) RescanFailedRecord() {
 			bs.wm.Log.Errorf("CfxGetBlockSpecByBlockNum failed,GetTransByNum is nil", err)
 			continue
 		}
-		transList := CreateBlockTransactionList(transTemp)
+		transList := CreateBlockTransactionList(transTemp,bs.wm.Decimal())
 		batchErr := bs.BatchExtractTransaction(block.Height.ToInt().Uint64(), transList)
 		if batchErr != nil {
 			bs.wm.Log.Std.Info("block scanner can not extractRechargeRecords; unexpected error: %v", batchErr)
@@ -248,7 +248,7 @@ func (bs *BlockScanner) ScanBlockTask() {
 		}
 
 
-		transList := CreateBlockTransactionList(transTemp)
+		transList := CreateBlockTransactionList(transTemp,bs.wm.Decimal())
 
 
 		if curBlock.ParentHash.String() != curBlockHash {
