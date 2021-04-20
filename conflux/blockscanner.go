@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcom "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"strings"
 	"time"
@@ -501,8 +502,8 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 		return err
 	}
 	tx.receipt = txReceipt
-	tx.Gas = common.NewString(txReceipt.ETHReceipt.GasUsed).String()
-	tx.Status = txReceipt.ETHReceipt.Status
+	tx.Gas = common.NewString(txReceipt.CFXReceipt.GasUsed).String()
+	tx.Status = uint64(txReceipt.CFXReceipt.OutcomeStatus)
 	tx.decimal = bs.wm.Decimal()
 
 	return nil
@@ -966,7 +967,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 
 	//迭代每个日志，提取时间日志
 	events := make([]*openwallet.SmartContractEvent, 0)
-	for _, log := range tx.receipt.ETHReceipt.Logs {
+	for _, log := range tx.receipt.CFXReceipt.Logs {
 
 		logContractAddress := strings.ToLower(log.Address.String())
 
@@ -996,7 +997,17 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 			return
 		}
 
-		_, eventName, logJSON, logErr := bs.wm.DecodeReceiptLogResult(abiInstance, *log)
+		topics := make([]ethcom.Hash, len(log.Topics))
+		for i, v := range log.Topics {
+			topics[i] = *v.ToCommonHash()
+		}
+
+
+		eLog := types.Log{}
+		eLog.Topics = topics
+		eLog.Data = []byte(log.Data)
+
+		_, eventName, logJSON, logErr := bs.wm.DecodeReceiptLogResult(abiInstance, eLog)
 		if logErr != nil {
 			bs.wm.Log.Errorf("DecodeReceiptLogResult failed, err: %v", logErr)
 			//result.Success = false
@@ -1021,7 +1032,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		To:          tx.To,
 		Fees:        tx.GetTxFeeEthString(),
 		Value:       tx.GetAmountEthString(),
-		RawReceipt:  tx.receipt.Raw,
+		//RawReceipt:  tx.receipt.Raw,
 		Events:      events,
 		BlockHash:   tx.BlockHash,
 		BlockHeight: tx.BlockHeight,

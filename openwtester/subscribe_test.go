@@ -95,7 +95,7 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(39936)
+	scanner.SetRescanBlockHeight(12865927)
 	scanner.Run()
 
 	<-endRunning

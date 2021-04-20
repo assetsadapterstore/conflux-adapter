@@ -89,22 +89,16 @@ func (wm *WalletManager) GetTransactionCount(addr string) (uint64, error) {
 }
 
 func (wm *WalletManager) GetTransactionReceipt(transactionId string) (*TransactionReceipt, error) {
-	params := []interface{}{
-		transactionId,
-	}
 
-	var ethReceipt types.Receipt
-	result, err := wm.WalletClient.Call("cfx_getTransactionReceipt", params)
+
+	txhash := cfxtypes.Hash(transactionId)
+	receipt, err := wm.CfxClient.GetTransactionReceipt(txhash)
+
 	if err != nil {
 		return nil, err
 	}
 
-	err = ethReceipt.UnmarshalJSON([]byte(result.Raw))
-	if err != nil {
-		return nil, err
-	}
-
-	txReceipt := &TransactionReceipt{ETHReceipt: &ethReceipt, Raw: result.Raw}
+	txReceipt := &TransactionReceipt{CFXReceipt: receipt}
 
 	return txReceipt, nil
 
@@ -173,8 +167,14 @@ func (wm *WalletManager) GetTransByNum(blockNum uint64) ([]cfxtypes.Transaction,
 			riskDecimal := decimal.NewFromBigInt(risk.ToInt(),0)
 			safe,_ :=  decimal.NewFromString("115792089237316195423570985008687907853269984665640564039457584007913129639936")
 			safe = safe.Sub(decimal.NewFromInt(1))
+
 			if riskDecimal.Div(safe).LessThanOrEqual(decimal.NewFromInt(1).Shift(-8)){
-				transList = append(transList, block.Transactions...)
+				if len(block.Transactions) >0{
+					for _,t := range block.Transactions{
+						t.BlockHash = &block.Hash
+						transList = append(transList,t)
+					}
+				}
 			}
 
 		}
