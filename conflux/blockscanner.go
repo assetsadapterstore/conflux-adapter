@@ -494,6 +494,7 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 		return nil
 	}
 
+	
 	//获取交易回执
 	txReceipt, err := bs.wm.GetTransactionReceipt(tx.Hash)
 	if err != nil {
