@@ -107,10 +107,14 @@ func (wm *WalletManager) GetTransactionReceipt(transactionId string) (*Transacti
 func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, error) {
 
 	transaction, err := wm.CfxClient.GetTransactionByHash(cfxtypes.Hash(txid))
-
 	if err != nil {
 		return nil, err
 	}
+	result, err := wm.CfxClient.GetBlockSummaryByHash(*transaction.BlockHash)
+	if err != nil {
+		return nil, err
+	}
+	transaction.EpochHeight = result.EpochNumber
 	tx := CreateBlockTransaction(transaction, wm.Decimal())
 	return tx, nil
 }
@@ -171,6 +175,7 @@ func (wm *WalletManager) GetTransByNum(blockNum uint64) ([]cfxtypes.Transaction,
 			if riskDecimal.Div(safe).LessThanOrEqual(decimal.NewFromInt(1).Shift(-8)) {
 				if len(block.Transactions) > 0 {
 					for _, t := range block.Transactions {
+						t.EpochHeight = block.EpochNumber
 						t.BlockHash = &block.Hash
 						transList = append(transList, t)
 					}
