@@ -342,7 +342,7 @@ func (bs *BlockScanner) newExtractDataNotify(height uint64, extractDataList map[
 			}
 		}
 
-		/**
+
 		for key, data := range extractContractData {
 			err := o.BlockExtractSmartContractDataNotify(key, data)
 			if err != nil {
@@ -355,7 +355,6 @@ func (bs *BlockScanner) newExtractDataNotify(height uint64, extractDataList map[
 				}
 			}
 		}
-		 */
 	}
 
 	return nil
@@ -502,8 +501,11 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 		return err
 	}
 	tx.receipt = txReceipt
-	tx.Gas = common.NewString(txReceipt.CFXReceipt.GasUsed).String()
-	tx.Status = uint64(txReceipt.CFXReceipt.OutcomeStatus)
+	tx.Gas = txReceipt.CFXReceipt.GasUsed.String()
+	outComeStatus := uint64(txReceipt.CFXReceipt.OutcomeStatus)
+	if outComeStatus == 0{
+		tx.Status = 1
+	}
 	tx.decimal = bs.wm.Decimal()
 
 	return nil
@@ -551,7 +553,7 @@ func (bs *BlockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Ba
 			return
 		}
 
-		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "latest_checkpoint")
+		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "latest_state")
 		if err != nil {
 			balanceAll = balanceConfirmed
 		}
@@ -642,12 +644,12 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 		result.extractData[sourceKey] = extractDataArray
 	}
 
-	/*
+
 	//提取代币交易单
 	for contractAddress, tokenEventArray := range tokenEvent {
 		//提出主币交易单
-		extractERC20Data := bs.extractERC20Transaction(tx, contractAddress, tokenEventArray)
-		for sourceKey, data := range extractERC20Data {
+		extractCRC20Data := bs.extractCRC20Transaction(tx, contractAddress, tokenEventArray)
+		for sourceKey, data := range extractCRC20Data {
 			extractDataArray := result.extractData[sourceKey]
 			if extractDataArray == nil {
 				extractDataArray = make([]*openwallet.TxExtractData, 0)
@@ -657,7 +659,7 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 		}
 	}
 
-	 */
+
 }
 
 //extractCFXTransaction 提取主币交易单
@@ -787,8 +789,8 @@ func (bs *BlockScanner) extractCFXTransaction(tx *BlockTransaction, isTokenTrans
 	return txExtractMap
 }
 
-//extractERC20Transaction
-func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent) map[string]*openwallet.TxExtractData {
+//extractCRC20Transaction
+func (bs *BlockScanner) extractCRC20Transaction(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent) map[string]*openwallet.TxExtractData {
 
 	var (
 		tokenName     string
@@ -809,7 +811,7 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	tokenSymbolResults = append(tokenSymbolResults, tokenSymbol)
 	tokenDecimalsResults := make([]interface{}, 0)
 	tokenDecimalsResults = append(tokenDecimalsResults, tokenDecimals)
-	bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
+	bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), CRC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
 	bc.Call(&bind.CallOpts{}, &tokenNameResults, "name")
 	bc.Call(&bind.CallOpts{}, &tokenSymbolResults, "symbol")
 	bc.Call(&bind.CallOpts{}, &tokenDecimalsResults, "decimals")
@@ -830,10 +832,10 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	}
 
 	//提取出账部分记录
-	from := bs.extractERC20Detail(tx, contractAddress, tokenEvent, true, txExtractMap)
+	from := bs.extractCRC20Detail(tx, contractAddress, tokenEvent, true, txExtractMap)
 
 	//提取入账部分记录
-	to := bs.extractERC20Detail(tx, contractAddress, tokenEvent, false, txExtractMap)
+	to := bs.extractCRC20Detail(tx, contractAddress, tokenEvent, false, txExtractMap)
 
 	for _, extractData := range txExtractMap {
 		tx := &openwallet.Transaction{
@@ -859,8 +861,8 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	return txExtractMap
 }
 
-//extractERC20Detail
-func (bs *BlockScanner) extractERC20Detail(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent, isInput bool, extractData map[string]*openwallet.TxExtractData) []string {
+//extractCRC20Detail
+func (bs *BlockScanner) extractCRC20Detail(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent, isInput bool, extractData map[string]*openwallet.TxExtractData) []string {
 
 	var (
 		addrs  = make([]string, 0)

@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-type EthContractDecoder struct {
+type CfxContractDecoder struct {
 	*openwallet.SmartContractDecoderBase
 	wm *WalletManager
 }
@@ -54,7 +54,7 @@ type AddrBalanceInf interface {
 	ValidTokenBalance() bool
 }
 
-func (decoder *EthContractDecoder) GetTokenBalanceByAddress(contract openwallet.SmartContract, address ...string) ([]*openwallet.TokenBalance, error) {
+func (decoder *CfxContractDecoder) GetTokenBalanceByAddress(contract openwallet.SmartContract, address ...string) ([]*openwallet.TokenBalance, error) {
 	threadControl := make(chan int, 20)
 	defer close(threadControl)
 	resultChan := make(chan *openwallet.TokenBalance, 1024)
@@ -83,27 +83,17 @@ func (decoder *EthContractDecoder) GetTokenBalanceByAddress(contract openwallet.
 			<-threadControl
 		}()
 
-		//		log.Debugf("in query thread.")
-		balanceConfirmed, err := decoder.wm.ERC20GetAddressBalance(address, contract.Address)
+		balanceConfirmed, err := decoder.wm.CFX20GetAddressBalance(address, contract.Address)
 		if err != nil {
 			return
 		}
 		balanceUnconfirmed := big.NewInt(0)
 		balanceAll := balanceConfirmed
 		bstr := common.BigIntToDecimals(balanceAll, int32(contract.Decimals))
-		if err != nil {
-			return
-		}
 
 		cbstr := common.BigIntToDecimals(balanceConfirmed, int32(contract.Decimals))
-		if err != nil {
-			return
-		}
 
 		ucbstr := common.BigIntToDecimals(balanceUnconfirmed, int32(contract.Decimals))
-		if err != nil {
-			return
-		}
 
 		balance = &openwallet.TokenBalance{
 			Contract: &contract,
@@ -130,7 +120,7 @@ func (decoder *EthContractDecoder) GetTokenBalanceByAddress(contract openwallet.
 	return tokenBalanceList, nil
 }
 
-func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*CallMsg, *abi.ABI, *openwallet.Error) {
+func (decoder *CfxContractDecoder) EncodeRawTransactionCallMsg(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*CallMsg, *abi.ABI, *openwallet.Error) {
 	var (
 		callMsg CallMsg
 	)
@@ -189,7 +179,7 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 	}
 }
 
-func (decoder *EthContractDecoder) GetAssetsAccountDefAddress(wrapper openwallet.WalletDAI, accountID string) (*openwallet.Address, *openwallet.Error) {
+func (decoder *CfxContractDecoder) GetAssetsAccountDefAddress(wrapper openwallet.WalletDAI, accountID string) (*openwallet.Address, *openwallet.Error) {
 	//获取wallet
 	addresses, err := wrapper.GetAddressList(0, 1,
 		"AccountID", accountID)
@@ -204,7 +194,7 @@ func (decoder *EthContractDecoder) GetAssetsAccountDefAddress(wrapper openwallet
 }
 
 //调用合约ABI方法
-func (decoder *EthContractDecoder) CallSmartContractABI(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*openwallet.SmartContractCallResult, *openwallet.Error) {
+func (decoder *CfxContractDecoder) CallSmartContractABI(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*openwallet.SmartContractCallResult, *openwallet.Error) {
 
 	callMsg, abiInstance, encErr := decoder.EncodeRawTransactionCallMsg(wrapper, rawTx)
 	if encErr != nil {
@@ -242,7 +232,7 @@ func (decoder *EthContractDecoder) CallSmartContractABI(wrapper openwallet.Walle
 }
 
 //创建原始交易单
-func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) *openwallet.Error {
+func (decoder *CfxContractDecoder) CreateSmartContractRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) *openwallet.Error {
 
 	var (
 		keySignList = make([]*openwallet.KeySignature, 0)
@@ -346,7 +336,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 }
 
 //SubmitRawTransaction 广播交易单
-func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*openwallet.SmartContractReceipt, *openwallet.Error) {
+func (decoder *CfxContractDecoder) SubmitSmartContractRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*openwallet.SmartContractReceipt, *openwallet.Error) {
 
 	err := decoder.VerifyRawTransaction(wrapper, rawTx)
 
@@ -484,7 +474,7 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 }
 
 //VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
-func (decoder *EthContractDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) error {
+func (decoder *CfxContractDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) error {
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
 		//decoder.wm.Log.Std.Error("len of signatures error. ")

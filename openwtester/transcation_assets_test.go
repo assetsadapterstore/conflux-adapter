@@ -120,7 +120,9 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer_CFX(t *testing.T) {
 
 	addrs := []string{
-		"cfx:aam2ja62jny28v59w7k715e57643j287sjdm33f5ez",
+		"cfx:aapmm76jgn4tc96h45kgtsuytnpzcne1s2xjb2djjn",
+		//"cfx:aan7kmh0pkmvmmsezjfnc7c1n0atya1v5ypgmx36r2",
+		//"cfx:aam2ja62jny28v59w7k715e57643j287sjdm33f5ez",
 		//"cfx:aan1wtmwdpr2tkzjn6wr6r2sw7h67mr9sa3rmnm58r",
 		//"cfx:aajpjd796x2vae1pvfmwk6tj38mj1vbv0pvejapmrh",
 		//"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
@@ -145,7 +147,7 @@ func TestTransfer_CFX(t *testing.T) {
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.1", "", nil, nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "10", "", nil, nil)
 		if err != nil {
 			return
 		}
@@ -170,28 +172,33 @@ func TestTransfer_CFX(t *testing.T) {
 	}
 }
 
-func TestTransfer_ERC20(t *testing.T) {
+func TestTransfer_CRC20(t *testing.T) {
 
 	addrs := []string{
-		"0x2f0b01cf4f5d2430423d4fba412bfb6347ae8cac",
-		"0x3880f535ea2e5ea837d4f72250ede40627ccdca0",
-		"0x48740446f5637995b3b542832ba8a511caeafaa4",
-		"0x9fad88195e6ee7f8c39e9e4ed4deb70a21836ada",
-		"0xa02126f69d4e240ef4e373224b11f0dbaf652c76",
-		"0xf1dd51bdb6234b8d9154bb73f55ac9683166a733",
-		"0xf41fbb39d2d57de11b065dffe4d9c5fb535e25ed",
+		//"cfx:aajpjd796x2vae1pvfmwk6tj38mj1vbv0pvejapmrh",
+		"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
+		//"cfx:aat3ubbh4069rknr6x5xj7203k4rkgmnxan6m1zkte",
+		//"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz",
+		//"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv",
+		//"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89",
+		//"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
+		//"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
+		//"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
+		//"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
 	}
 
 	tm := testInitWalletManager()
 	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
-	accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
+	accountID := "GpyZC7ZdfjYCRCVw9itgn1CGwR7rLFkXaz8TaV2zMeCu"
 
+	//walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
+	//accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
 	contract := openwallet.SmartContract{
-		Address:  "0x627b11ead4eb39ebe61a70ab3d6fe145e5d06ab6",
+		Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
 		Symbol:   "CFX",
-		Name:     "FUQI",
-		Token:    "FUQI",
-		Decimals: 2,
+		Name:     "BLOCKLINK",
+		Token:    "BT",
+		Decimals: 18,
 	}
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
@@ -199,7 +206,7 @@ func TestTransfer_ERC20(t *testing.T) {
 	testGetAssetsAccountTokenBalance(tm, walletID, accountID, contract)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "12.34", "", &contract, nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.01", "", &contract, nil)
 		if err != nil {
 			return
 		}
@@ -267,26 +274,27 @@ func TestSummary_CFX(t *testing.T) {
 
 }
 
-/*
-func TestSummary_ERC20(t *testing.T) {
+
+func TestSummary_CRC20(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WBGYxZ6yEX582Mx8mGvygXevdLVc7NQnLM"
-	accountID := "EPByoz99UbLvLTdrnckHHDfF5NrRTNtfagBxRdStoKHL"
-	summaryAddress := "0x3440f720862aa7dfd4f86ecc78542b3ded900c02"
+	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
+	accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
+	summaryAddress := "cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m"
 
 	feesSupport := openwallet.FeesSupportAccount{
-		AccountID: "3xLbreE3asBRVCCk13Y9V4NzjyijXdx8sb6k54TmQkFg",
-		//FixSupportAmount: "0.01",
+		AccountID: "7v7m8BfbZiCEuwFPerYjHdKM9J4xfNbpwUrKyN1ZFwN4",
+		FixSupportAmount: "0.5",
 		FeesSupportScale: "1.3",
 	}
 
 	contract := openwallet.SmartContract{
-		Address:  "0x627b11ead4eb39ebe61a70ab3d6fe145e5d06ab6",
+		Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
 		Symbol:   "CFX",
-		Name:     "FUQI",
-		Token:    "FUQI",
-		Decimals: 2,
+		Name:     "BLOCKLINK",
+		Token:    "BT",
+		Decimals: 18,
 	}
+
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
@@ -325,4 +333,3 @@ func TestSummary_ERC20(t *testing.T) {
 	}
 
 }
-*/

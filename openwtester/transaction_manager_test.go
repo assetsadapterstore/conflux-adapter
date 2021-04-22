@@ -119,13 +119,12 @@ func TestWalletManager_GetAssetsAccountTokenBalance(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
 	accountID := "GpyZC7ZdfjYCRCVw9itgn1CGwR7rLFkXaz8TaV2zMeCu"
-
 	contract := openwallet.SmartContract{
-		Address:  "0x627b11ead4eb39ebe61a70ab3d6fe145e5d06ab6",
+		Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
 		Symbol:   "CFX",
-		Name:     "FUQI",
-		Token:    "FUQI",
-		Decimals: 2,
+		Name:     "BLOCKLINK",
+		Token:    "BT",
+		Decimals: 18,
 	}
 
 	balance, err := tm.GetAssetsAccountTokenBalance(testApp, walletID, accountID, contract)

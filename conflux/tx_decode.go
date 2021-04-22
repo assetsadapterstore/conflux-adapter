@@ -154,7 +154,7 @@ func (decoder *EthTransactionDecoder) CreateSimpleRawTransaction(wrapper openwal
 	return nil
 }
 
-func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (decoder *EthTransactionDecoder) CreateCrc20TokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	var (
 		accountID       = rawTx.Account.AccountID
@@ -223,9 +223,21 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 			tokenBalanceNotEnough = true
 			continue
 		}
+		toTemp,err := cfxaddress.NewFromBase32(to)
+		if err != nil{
+			decoder.wm.Log.Std.Error("toTemp  -> to[%v] failed, err=%v",  to, err)
+			continue
+		}
+		commonAddr,_,err := toTemp.ToCommon()
+		if err != nil{
+			decoder.wm.Log.Std.Error("commonAddr  -> to[%v] failed, err=%v",  to, err)
+			continue
+		}
 
-		data, createErr := decoder.wm.EncodeABIParam(ERC20_ABI, "transfer", decoder.wm.CustomAddressDecodeFunc(to), amount.String())
+		data, createErr := decoder.wm.EncodeABIParam(CRC20_ABI, "transfer", commonAddr.String(), amount.String())
 		if createErr != nil {
+			decoder.wm.Log.Std.Error("EncodeABIParam from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, to, createErr)
+
 			continue
 		}
 
@@ -233,7 +245,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 		//计算手续费
 		fee, createErr := decoder.wm.GetTransactionFeeEstimated(addrBalance.Balance.Address, contractAddress, nil, data)
 		if createErr != nil {
-			//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, to, createErr)
+			decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, to, createErr)
 			return createErr
 		}
 
@@ -242,7 +254,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 			fee.CalcFee()
 		}
 
-		coinBalance, err := decoder.wm.GetAddrBalance(addrBalance.Balance.Address, "pending")
+		coinBalance, err := decoder.wm.GetAddrBalance(addrBalance.Balance.Address, "latest_state")
 		if err != nil {
 			continue
 		}
@@ -290,9 +302,9 @@ func (decoder *EthTransactionDecoder) CreateRawTransaction(wrapper openwallet.Wa
 	if !rawTx.Coin.IsContract {
 		return decoder.CreateSimpleRawTransaction(wrapper, rawTx, nil)
 	}else{
-		return openwallet.Errorf(openwallet.ErrSignRawTransactionFailed, "transaction not support erc20")
+		return decoder.CreateCrc20TokenRawTransaction(wrapper, rawTx)
 	}
-	//return decoder.CreateErc20TokenRawTransaction(wrapper, rawTx)
+
 }
 
 //SignRawTransaction 签名交易单
@@ -482,7 +494,7 @@ func (decoder *EthTransactionDecoder) CreateSummaryRawTransaction(wrapper openwa
 		err               error
 	)
 	if sumRawTx.Coin.IsContract {
-		rawTxWithErrArray, err = decoder.CreateErc20TokenSummaryRawTransaction(wrapper, sumRawTx)
+		rawTxWithErrArray, err = decoder.CreateCrc20TokenSummaryRawTransaction(wrapper, sumRawTx)
 	} else {
 		rawTxWithErrArray, err = decoder.CreateSimpleSummaryRawTransaction(wrapper, sumRawTx)
 	}
@@ -605,8 +617,8 @@ func (decoder *EthTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper 
 	return rawTxArray, nil
 }
 
-//CreateErc20TokenSummaryRawTransaction 创建ERC20Token汇总交易
-func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
+//CreateErc20TokenSummaryRawTransaction 创建CRC20Token汇总交易
+func (decoder *EthTransactionDecoder) CreateCrc20TokenSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 
 	var (
 		rawTxArray         = make([]*openwallet.RawTransactionWithError, 0)
@@ -690,7 +702,24 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 		sumAmount_BI := new(big.Int)
 		sumAmount_BI.Sub(addrBalance_BI, retainedBalance)
 
-		callData, err := decoder.wm.EncodeABIParam(ERC20_ABI, "transfer", sumRawTx.SummaryAddress, sumAmount_BI.String())
+
+		toTemp,err := cfxaddress.NewFromBase32(sumRawTx.SummaryAddress)
+		if err != nil{
+			decoder.wm.Log.Std.Error("toTemp Summary -> to[%v] failed, err=%v",  sumRawTx.SummaryAddress, err)
+			continue
+		}
+		commonAddr,_,err := toTemp.ToCommon()
+		if err != nil{
+			decoder.wm.Log.Std.Error("commonAddr  Summary -> to[%v] failed, err=%v",  sumRawTx.SummaryAddress, err)
+			continue
+		}
+
+		callData, createErr := decoder.wm.EncodeABIParam(CRC20_ABI, "transfer", commonAddr.String(), sumAmount_BI.String())
+		if createErr != nil {
+			decoder.wm.Log.Std.Error("EncodeABIParam Summary from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, sumRawTx.SummaryAddress, createErr)
+
+			continue
+		}
 
 		//decoder.wm.Log.Debug("sumAmount:", sumAmount)
 		//计算手续费
@@ -712,7 +741,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 		sumAmount := common.BigIntToDecimals(sumAmount_BI, tokenDecimals)
 		fees := common.BigIntToDecimals(fee.Fee, decoder.wm.Decimal())
 
-		coinBalance, createErr := decoder.wm.GetAddrBalance(addrBalance.Balance.Address, "pending")
+		coinBalance, createErr := decoder.wm.GetAddrBalance(addrBalance.Balance.Address, "latest_state")
 		if err != nil {
 			continue
 		}
@@ -878,18 +907,74 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 	}
 
 
-	toCfx := cfxaddress.MustNewFromBase32(destination)
-	amount := common.StringNumToBigIntWithExp(amountStr, decoder.wm.Decimal())
-	fromCfx := cfxaddress.MustNewFromBase32(addrBalance.Address)
-
-
-
-	utx, err := decoder.wm.CfxClient.CreateUnsignedTransaction(fromCfx, toCfx, cfxtype.NewBigIntByRaw(amount), nil)
-	if err != nil {
-		decoder.wm.Log.Error("CreateUnsignedTransaction failed, err:", err)
+	toCfx,err := cfxaddress.NewFromBase32(destination)
+	if err != nil{
+		decoder.wm.Log.Error("toCfx failed, err:", err)
 		return openwallet.ConvertError(err)
 	}
 
+	fromCfx,err := cfxaddress.NewFromBase32(addrBalance.Address)
+	if err != nil{
+		decoder.wm.Log.Error("fromCfx failed, err:", err)
+		return openwallet.ConvertError(err)
+	}
+
+
+
+	tokenDecimals := int32(rawTx.Coin.Contract.Decimals)
+	var utx cfxtype.UnsignedTransaction
+
+	isContract := rawTx.Coin.IsContract
+	if isContract {
+		contractCfx,err := cfxaddress.NewFromBase32(rawTx.Coin.Contract.Address)
+		if err != nil{
+			decoder.wm.Log.Error("contractCfx failed, err:", err)
+			return openwallet.ConvertError(err)
+		}
+		//构建合约交易
+		amount := common.StringNumToBigIntWithExp(amountStr, tokenDecimals)
+		if addrBalance.TokenBalance.Cmp(amount) < 0 {
+			return openwallet.Errorf(openwallet.ErrInsufficientTokenBalanceOfAddress, "the token balance: %s is not enough", amountStr)
+			//return openwallet.Errorf("the token balance: %s is not enough", amountStr)
+		}
+
+		if addrBalance.Balance.Cmp(fee.Fee) < 0 {
+			coinBalance := common.BigIntToDecimals(addrBalance.Balance, decoder.wm.Decimal())
+			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
+			//return openwallet.Errorf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
+		}
+
+		callDataByte,_ := hex.DecodeString(callData)
+
+		//utx = cfxtype.UnsignedTransaction{
+		//	Data:callDataByte,
+		//	To:&contractCfx,
+		//
+		//}
+		//err = decoder.wm.CfxClient.ApplyUnsignedTransactionDefault(&utx)
+		utx, err = decoder.wm.CfxClient.CreateUnsignedTransaction(fromCfx, contractCfx, cfxtype.NewBigInt(0), callDataByte)
+		if err != nil {
+			decoder.wm.Log.Error("CreateUnsignedTransaction failed, err:", err)
+			return openwallet.ConvertError(err)
+		}
+	} else {
+		//构建QUORUM交易
+		amount := common.StringNumToBigIntWithExp(amountStr, decoder.wm.Decimal())
+
+		totalAmount := new(big.Int)
+		totalAmount.Add(amount, fee.Fee)
+		if addrBalance.Balance.Cmp(totalAmount) < 0 {
+			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
+			//return openwallet.Errorf("the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
+		}
+
+		utx, err = decoder.wm.CfxClient.CreateUnsignedTransaction(fromCfx, toCfx, cfxtype.NewBigIntByRaw(amount), nil)
+		if err != nil {
+			decoder.wm.Log.Error("CreateUnsignedTransaction failed, err:", err)
+			return openwallet.ConvertError(err)
+		}
+
+	}
 
 	utx.Nonce = cfxtype.NewBigInt(nonce)
 	rawHex, err := utx.Encode()
@@ -926,7 +1011,7 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 // CreateSummaryRawTransactionWithError 创建汇总交易，返回能原始交易单数组（包含带错误的原始交易单）
 func (decoder *EthTransactionDecoder) CreateSummaryRawTransactionWithError(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 	if sumRawTx.Coin.IsContract {
-		return decoder.CreateErc20TokenSummaryRawTransaction(wrapper, sumRawTx)
+		return decoder.CreateCrc20TokenSummaryRawTransaction(wrapper, sumRawTx)
 	} else {
 		return decoder.CreateSimpleSummaryRawTransaction(wrapper, sumRawTx)
 	}

@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/hdkeystore"
@@ -36,11 +37,11 @@ import (
 )
 
 const (
-	ERC20_ABI_JSON = `[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+	CRC20_ABI_JSON = `[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
 )
 
 var (
-	ERC20_ABI, _ = abi.JSON(strings.NewReader(ERC20_ABI_JSON))
+	CRC20_ABI, _ = abi.JSON(strings.NewReader(CRC20_ABI_JSON))
 )
 
 type EthBlock struct {
@@ -67,7 +68,7 @@ type BlockArray struct {
 //hex.De
 //}
 
-type ERC20Token struct {
+type CRC20Token struct {
 	Address  string `json:"address" storm:"id"`
 	Symbol   string `json:"symbol" storm:"index"`
 	Name     string `json:"name"`
@@ -110,7 +111,7 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 		return transferEvents
 	}
 
-	bc := bind.NewBoundContract(ethcom.HexToAddress("0x0"), ERC20_ABI, nil, nil, nil)
+	bc := bind.NewBoundContract(ethcom.HexToAddress("0x0"), CRC20_ABI, nil, nil, nil)
 	for _, log := range receipt.CFXReceipt.Logs {
 
 		if len(log.Topics) != 3 {
@@ -118,12 +119,12 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 		}
 
 		topic := log.Topics[0].ToCommonHash()
-		event, _ := ERC20_ABI.EventByID(*topic)
+		event, _ := CRC20_ABI.EventByID(*topic)
 		if event == nil || event.Name != "Transfer" {
 			continue
 		}
 
-		address := strings.ToLower(log.Address.String())
+		address := strings.ToLower(log.Address.MustGetBase32Address())
 
 		topics := make([]ethcom.Hash, len(log.Topics))
 		for i, v := range log.Topics {
@@ -147,8 +148,11 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 			events = make([]*TransferEvent, 0)
 		}
 		transfer.ContractAddress = address
-		transfer.TokenFrom = strings.ToLower(transfer.From.String())
-		transfer.TokenTo = strings.ToLower(transfer.To.String())
+		cfxFrom,_ := cfxaddress.NewFromCommon(transfer.From,1029)
+		cfxTo,_ := cfxaddress.NewFromCommon(transfer.To,1029)
+
+		transfer.TokenFrom = strings.ToLower(cfxFrom.MustGetBase32Address())
+		transfer.TokenTo = strings.ToLower(cfxTo.MustGetBase32Address())
 
 		events = append(events, &transfer)
 		transferEvents[address] = events
@@ -221,7 +225,7 @@ func CreateBlockTransaction(transaction *cfxtypes.Transaction, decimal int32) *B
 	temp.From = transaction.From.MustGetBase32Address()
 
 	if transaction.To != nil {
-		transaction.To.MustGetBase32Address()
+		temp.To = transaction.To.MustGetBase32Address()
 	}
 
 	if transaction.Status != nil {
@@ -242,7 +246,6 @@ func CreateBlockTransactionList(transactions []cfxtypes.Transaction, decimal int
 			temp := &BlockTransaction{
 				Hash:        transaction.Hash.String(),
 				BlockNumber: transaction.EpochHeight.String(),
-
 				Gas:       transaction.Gas.String(),
 				BlockHash: transaction.BlockHash.String(),
 				GasPrice:  transaction.GasPrice.String(),
@@ -253,7 +256,7 @@ func CreateBlockTransactionList(transactions []cfxtypes.Transaction, decimal int
 			temp.From = transaction.From.MustGetBase32Address()
 
 			if transaction.To != nil {
-				transaction.To.MustGetBase32Address()
+				temp.To = transaction.To.MustGetBase32Address()
 			}
 
 			if transaction.Status != nil {
@@ -275,7 +278,7 @@ func CreateBlockTransactionList(transactions []cfxtypes.Transaction, decimal int
 
 func (this *BlockTransaction) GetAmountEthString() string {
 	amount, _ := hexutil.DecodeBig(this.Value)
-	amountVal := common.BigIntToDecimals(amount, 0)
+	amountVal := common.BigIntToDecimals(amount, this.decimal)
 	return amountVal.String()
 }
 
@@ -287,7 +290,7 @@ func (this *BlockTransaction) GetTxFeeEthString() string {
 		return fee.String()
 	}
 	fee.Mul(gasPrice, gas)
-	feeprice := common.BigIntToDecimals(fee, 0)
+	feeprice := common.BigIntToDecimals(fee, this.decimal)
 	return feeprice.String()
 }
 

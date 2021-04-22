@@ -21,6 +21,7 @@ import (
 	"fmt"
 	cfxclient "github.com/Conflux-Chain/go-conflux-sdk"
 	cfxtypes "github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/assetsadapterstore/conflux-adapter/conflux_addrdec"
 	"github.com/assetsadapterstore/conflux-adapter/conflux_rpc"
 	"github.com/blocktree/go-owcrypt"
@@ -60,7 +61,7 @@ func NewWalletManager() *WalletManager {
 	wm.Blockscanner = NewBlockScanner(&wm)
 	wm.Decoder = &conflux_addrdec.Default
 	wm.TxDecoder = NewTransactionDecoder(&wm)
-	wm.ContractDecoder = &EthContractDecoder{wm: &wm}
+	wm.ContractDecoder = &CfxContractDecoder{wm: &wm}
 	wm.Log = log.NewOWLogger(wm.Symbol())
 	wm.CustomAddressEncodeFunc = CustomAddressEncode
 	wm.CustomAddressDecodeFunc = CustomAddressDecode
@@ -90,7 +91,6 @@ func (wm *WalletManager) GetTransactionCount(addr string) (uint64, error) {
 
 func (wm *WalletManager) GetTransactionReceipt(transactionId string) (*TransactionReceipt, error) {
 
-
 	txhash := cfxtypes.Hash(transactionId)
 	receipt, err := wm.CfxClient.GetTransactionReceipt(txhash)
 
@@ -111,7 +111,7 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	if err != nil {
 		return nil, err
 	}
-	tx := CreateBlockTransaction(transaction,wm.Decimal())
+	tx := CreateBlockTransaction(transaction, wm.Decimal())
 	return tx, nil
 }
 
@@ -158,21 +158,21 @@ func (wm *WalletManager) GetTransByNum(blockNum uint64) ([]cfxtypes.Transaction,
 			block, err := wm.GetBlockByHash(v.String())
 			if err != nil {
 				//查找不到直接continue
-				return nil,errors.New("can't find block" + v.String())
+				return nil, errors.New("can't find block" + v.String())
 			}
-			risk,err := wm.CfxClient.GetRawBlockConfirmationRisk(v)
-			if err != nil{
-				return nil,errors.New("can't find block risk" + v.String())
+			risk, err := wm.CfxClient.GetRawBlockConfirmationRisk(v)
+			if err != nil {
+				return nil, errors.New("can't find block risk" + v.String())
 			}
-			riskDecimal := decimal.NewFromBigInt(risk.ToInt(),0)
-			safe,_ :=  decimal.NewFromString("115792089237316195423570985008687907853269984665640564039457584007913129639936")
+			riskDecimal := decimal.NewFromBigInt(risk.ToInt(), 0)
+			safe, _ := decimal.NewFromString("115792089237316195423570985008687907853269984665640564039457584007913129639936")
 			safe = safe.Sub(decimal.NewFromInt(1))
 
-			if riskDecimal.Div(safe).LessThanOrEqual(decimal.NewFromInt(1).Shift(-8)){
-				if len(block.Transactions) >0{
-					for _,t := range block.Transactions{
+			if riskDecimal.Div(safe).LessThanOrEqual(decimal.NewFromInt(1).Shift(-8)) {
+				if len(block.Transactions) > 0 {
+					for _, t := range block.Transactions {
 						t.BlockHash = &block.Hash
-						transList = append(transList,t)
+						transList = append(transList, t)
 					}
 				}
 			}
@@ -245,42 +245,28 @@ func (wm *WalletManager) RecoverUnscannedTransactions(unscannedTxs []*openwallet
 	return allTxs, nil
 }
 
-// ERC20GetAddressBalance
-func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr string) (*big.Int, error) {
+// CFX20GetAddressBalance
+func (wm *WalletManager) CFX20GetAddressBalance(address string, contractAddr string) (*big.Int, error) {
 
-	address = wm.CustomAddressDecodeFunc(address)
-	contractAddr = wm.CustomAddressDecodeFunc(contractAddr)
-	address = AppendOxToAddress(address)
-	contractAddr = AppendOxToAddress(contractAddr)
+	//address = wm.CustomAddressDecodeFunc(address)
+	//contractAddr = wm.CustomAddressDecodeFunc(contractAddr)
+	//address = AppendOxToAddress(address)
+	//contractAddr = AppendOxToAddress(contractAddr)
 
-	//abi编码
-	data, err := wm.EncodeABIParam(ERC20_ABI, "balanceOf", address)
+	from ,_  := cfxaddress.NewFromBase32(address)
+
+	deployedAt,_ := cfxaddress.NewFromBase32(contractAddr)
+
+	contract,_ := wm.CfxClient.GetContract([]byte(CRC20_ABI_JSON),&deployedAt)
+
+	balance := &struct{ Balance *big.Int }{}
+
+	err := contract.Call(nil, balance, "balanceOf", from.MustGetCommonAddress())
 	if err != nil {
-		return nil, err
+		return nil,err
 	}
 
-	//toAddr := ethcom.HexToAddress(contractAddr)
-	callMsg := CallMsg{
-		From:  ethcom.HexToAddress(address),
-		To:    ethcom.HexToAddress(contractAddr),
-		Data:  data,
-		Value: big.NewInt(0),
-	}
-
-	result, err := wm.EthCall(callMsg, "latest")
-	if err != nil {
-		return nil, err
-	}
-
-	rMap, _, err := wm.DecodeABIResult(ERC20_ABI, "balanceOf", result)
-	if err != nil {
-		return nil, err
-	}
-	balance, ok := rMap[""].(*big.Int)
-	if !ok {
-		return big.NewInt(0), fmt.Errorf("balance type is not big.Int ")
-	}
-	return balance, nil
+	return balance.Balance, nil
 
 }
 
@@ -366,11 +352,10 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 	callMsg := map[string]interface{}{
 		"from": wm.CustomAddressDecodeFunc(from),
 		"to":   wm.CustomAddressDecodeFunc(to),
-
 	}
 
-	if data != nil{
-		callMsg["data"] =  hexutil.Encode(data)
+	if data != nil {
+		callMsg["data"] = hexutil.Encode(data)
 	}
 
 	if value != nil {
@@ -729,22 +714,22 @@ func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interfac
 }
 
 func convertParamToNum(param string, abiType abi.Type) (interface{}, error) {
-	//var (
-	//base int
-	//bInt *big.Int
-	//err  error
-	//)
-	//if strings.HasPrefix(param, "0x") {
-	//	base = 16
-	//} else {
-	//	base = 10
-	//}
-	//bInt, err = common.StringValueToBigInt(param, base)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//switch abiType.Kind {
+	var (
+		base int
+		bInt *big.Int
+		err  error
+	)
+	if strings.HasPrefix(param, "0x") {
+		base = 16
+	} else {
+		base = 10
+	}
+	bInt, err = common.StringValueToBigInt(param, base)
+	if err != nil {
+		return nil, err
+	}
+	//
+	//switch abiType.TupleType {
 	//case reflect.Uint:
 	//	return uint(bInt.Uint64()), nil
 	//case reflect.Uint8:
@@ -766,9 +751,9 @@ func convertParamToNum(param string, abiType abi.Type) (interface{}, error) {
 	//case reflect.Int64:
 	//	return int64(bInt.Int64()), nil
 	//case reflect.Ptr:
-	//	return bInt, nil
+		return bInt, nil
 	//default:
-	return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
+	//	return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
 	//}
 }
 

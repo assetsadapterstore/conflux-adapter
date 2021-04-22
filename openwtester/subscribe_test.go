@@ -73,18 +73,43 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 		symbol     = "CFX"
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
-			"cfx:aat0v7ux5zkgdbff817uv2bye3djvcejvakkdshjm2": "sender",
-			"cfx:aan1wtmwdpr2tkzjn6wr6r2sw7h67mr9sa3rmnm58r": "receiver",
-			"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa":"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
-			"cfx:acb59fk6vryh8dj5vyvehj9apzhpd72rdpwsc651kz":"cfx:acb59fk6vryh8dj5vyvehj9apzhpd72rdpwsc651kz",
-			"cfx:aanctcc2xwhdu4dd8jn9z552uuevx83jmu82ypyjts":"cfx:aanctcc2xwhdu4dd8jn9z552uuevx83jmu82ypyjts",
-			"cfx:aaj1z9k49zr61wbbpg58gff128j3kjj252ks1p6dkj":"cfx:aaj1z9k49zr61wbbpg58gff128j3kjj252ks1p6dkj",
-			"cfx:aajk4hducatfrtnybdecy3sj48agb0nzkan2jkvhz0":"cfx:aajk4hducatfrtnybdecy3sj48agb0nzkan2jkvhz0",
+			//"cfx:aat0v7ux5zkgdbff817uv2bye3djvcejvakkdshjm2": "sender",
+			//"cfx:aan1wtmwdpr2tkzjn6wr6r2sw7h67mr9sa3rmnm58r": "receiver",
+			//"cfx:acb59fk6vryh8dj5vyvehj9apzhpd72rdpwsc651kz":"cfx:acb59fk6vryh8dj5vyvehj9apzhpd72rdpwsc651kz",
+			//"cfx:aanctcc2xwhdu4dd8jn9z552uuevx83jmu82ypyjts":"cfx:aanctcc2xwhdu4dd8jn9z552uuevx83jmu82ypyjts",
+			//"cfx:aaj1z9k49zr61wbbpg58gff128j3kjj252ks1p6dkj":"cfx:aaj1z9k49zr61wbbpg58gff128j3kjj252ks1p6dkj",
+			//"cfx:aajk4hducatfrtnybdecy3sj48agb0nzkan2jkvhz0":"cfx:aajk4hducatfrtnybdecy3sj48agb0nzkan2jkvhz0",
+			//"cfx:aajpjd796x2vae1pvfmwk6tj38mj1vbv0pvejapmrh":"cfx:aajpjd796x2vae1pvfmwk6tj38mj1vbv0pvejapmrh",
+			//"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa":"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
+			//"cfx:aat3ubbh4069rknr6x5xj7203k4rkgmnxan6m1zkte":"cfx:aat3ubbh4069rknr6x5xj7203k4rkgmnxan6m1zkte",
+			//"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz":"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz",
+			//"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv":"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv",
+			//"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89":"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89",
+			//"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td":"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
+			//"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn":"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
+			//"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s":"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
+			//"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex":"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
+			"cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m":"cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m",
+			//"cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg":"cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
 		}
 	)
 
 	scanTargetFunc := func(target openwallet.ScanTargetParam) openwallet.ScanTargetResult {
 		sourceKey, ok := addrs[target.ScanTarget]
+		//if sourceKey == "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg"{
+		//	return openwallet.ScanTargetResult{
+		//		SourceKey: "GOOD",
+		//		Exist:     true,
+		//		TargetInfo: &openwallet.SmartContract{
+		//			ContractID: "GOOD",
+		//			Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
+		//			Symbol:   "CFX",
+		//			Name:     "BLOCKLINK",
+		//			Token:    "BT",
+		//			Decimals: 18,
+		//		},
+		//	}
+		//}
 		return openwallet.ScanTargetResult{SourceKey: sourceKey, Exist: ok, TargetInfo: nil,}
 	}
 
@@ -95,7 +120,7 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(12865927)
+	scanner.SetRescanBlockHeight(12965841)
 	scanner.Run()
 
 	<-endRunning
