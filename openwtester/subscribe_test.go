@@ -89,8 +89,9 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 			//"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn":"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
 			//"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s":"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
 			//"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex":"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
-			"cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m":"cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m",
+			//"cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m":"cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m",
 			//"cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg":"cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
+			"cfx:aat0g19frj85yzwdsd05vpr6k848fhdwb6b1mya9dg":"cfx:aat0g19frj85yzwdsd05vpr6k848fhdwb6b1mya9dg",
 		}
 	)
 
@@ -120,7 +121,7 @@ func TestSubscribeAddress_CFX(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(12865111)
+	scanner.SetRescanBlockHeight(13047065)
 	scanner.Run()
 
 	<-endRunning

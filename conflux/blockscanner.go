@@ -505,6 +505,8 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 		bs.wm.Log.Errorf("get transaction receipt failed, err: %v", tx.Hash)
 		return nil
 	}
+	tx.BlockHash = txReceipt.CFXReceipt.BlockHash.String()
+	tx.BlockHeight = uint64(*txReceipt.CFXReceipt.EpochNumber)
 	tx.receipt = txReceipt
 	tx.Gas = txReceipt.CFXReceipt.GasUsed.String()
 	outComeStatus := uint64(txReceipt.CFXReceipt.OutcomeStatus)

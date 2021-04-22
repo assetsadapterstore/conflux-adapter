@@ -156,6 +156,7 @@ func (wm *WalletManager) GetTransByNum(blockNum uint64) ([]cfxtypes.Transaction,
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(result)
 	transList := make([]cfxtypes.Transaction, 0)
 	if len(result) > 0 {
 		for _, v := range result {
