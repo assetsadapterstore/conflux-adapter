@@ -512,6 +512,8 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 	outComeStatus := uint64(txReceipt.CFXReceipt.OutcomeStatus)
 	if outComeStatus == 0{
 		tx.Status = 1
+	}else{
+		tx.Status = 0
 	}
 	tx.decimal = bs.wm.Decimal()
 
