@@ -70,22 +70,14 @@ func NewWalletManager() *WalletManager {
 }
 
 func (wm *WalletManager) GetTransactionCount(addr string) (uint64, error) {
-	addr = wm.CustomAddressDecodeFunc(addr)
-	params := []interface{}{
-		AppendOxToAddress(addr),
-		"latest",
+
+	address,_ := cfxaddress.NewFromBase32(addr)
+	nonce, err := wm.CfxClient.GetNextNonce(address, nil)
+	if err != nil{
+		return 0,err
 	}
 
-	if wm.WalletClient == nil {
-		return 0, fmt.Errorf("wallet client is not initialized")
-	}
-
-	result, err := wm.WalletClient.Call("cfx_getTransactionCount", params)
-	if err != nil {
-		return 0, err
-	}
-
-	nonceStr := result.String()
+	nonceStr := nonce.String()
 	return hexutil.DecodeUint64(nonceStr)
 }
 
