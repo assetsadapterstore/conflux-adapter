@@ -509,8 +509,8 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 	tx.BlockHeight = uint64(*txReceipt.CFXReceipt.EpochNumber)
 	tx.receipt = txReceipt
 	tx.Gas = txReceipt.CFXReceipt.GasUsed.String()
-	outComeStatus := uint64(txReceipt.CFXReceipt.OutcomeStatus)
-	if outComeStatus == 0{
+	outComeStatus := txReceipt.CFXReceipt.OutcomeStatus.String()
+	if outComeStatus == "0x0"{
 		tx.Status = 1
 	}else{
 		tx.Status = 0

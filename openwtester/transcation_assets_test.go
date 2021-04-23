@@ -120,6 +120,7 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer_CFX(t *testing.T) {
 
 	addrs := []string{
+		"cfx:aas11nm7x9g698kjteu1bbfhh22s141gbuxw7v8hz2",
 		//"cfx:aaphzzjvh4cd7hnjwxhrg1k0mu0nnbf0fen1utdran",
 		//"cfx:aapmm76jgn4tc96h45kgtsuytnpzcne1s2xjb2djjn",
 		//"cfx:aan7kmh0pkmvmmsezjfnc7c1n0atya1v5ypgmx36r2",
@@ -134,7 +135,7 @@ func TestTransfer_CFX(t *testing.T) {
 		//"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
 		//"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
 		//"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
-		"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
+		//"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
 	}
 
 	tm := testInitWalletManager()
@@ -148,7 +149,7 @@ func TestTransfer_CFX(t *testing.T) {
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "1", "", nil, nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "10", "", nil, nil)
 		if err != nil {
 			return
 		}
