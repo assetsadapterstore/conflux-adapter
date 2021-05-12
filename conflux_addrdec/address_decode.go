@@ -62,6 +62,9 @@ func (dec *AddressDecoderV2) AddressEncode(hash []byte, opts ...interface{}) (st
 
 // AddressVerify 地址校验
 func (dec *AddressDecoderV2) AddressVerify(address string, opts ...interface{}) bool {
+	if !strings.HasPrefix(address,"cfx:"){
+		return false
+	}
 	_, err := cfxaddress.NewFromBase32(address)
 	if err != nil {
 		return false
