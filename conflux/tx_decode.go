@@ -906,7 +906,6 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 		nonce = *tmpNonce
 	}
 
-
 	toCfx,err := cfxaddress.NewFromBase32(destination)
 	if err != nil{
 		decoder.wm.Log.Error("toCfx failed, err:", err)
@@ -975,6 +974,8 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 		}
 
 	}
+	utx.GasPrice = cfxtype.NewBigIntByRaw(fee.GasPrice)
+	utx.Gas = cfxtype.NewBigIntByRaw(fee.Fee)
 
 	utx.Nonce = cfxtype.NewBigInt(nonce)
 	rawHex, err := utx.Encode()
