@@ -120,7 +120,7 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer_CFX(t *testing.T) {
 
 	addrs := []string{
-		"cfx:aas11nm7x9g698kjteu1bbfhh22s141gbuxw7v8hz2",
+		"cfx:aat56dtnk02abbfxwbnv7fy6p6uvzgnuvjd9e82vkp",
 		//"cfx:aaphzzjvh4cd7hnjwxhrg1k0mu0nnbf0fen1utdran",
 		//"cfx:aapmm76jgn4tc96h45kgtsuytnpzcne1s2xjb2djjn",
 		//"cfx:aan7kmh0pkmvmmsezjfnc7c1n0atya1v5ypgmx36r2",
@@ -149,7 +149,7 @@ func TestTransfer_CFX(t *testing.T) {
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "10", "", nil, nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.1", "", nil, nil)
 		if err != nil {
 			return
 		}
@@ -180,15 +180,15 @@ func TestTransfer_CRC20(t *testing.T) {
 		//"cfx:aaphzzjvh4cd7hnjwxhrg1k0mu0nnbf0fen1utdran",
 		//"cfx:aam2ja62jny28v59w7k715e57643j287sjdm33f5ez",
 		//"cfx:aajpjd796x2vae1pvfmwk6tj38mj1vbv0pvejapmrh",
-		//"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
+		"cfx:aap3a7jd09w7fd3dk2003thw9fh6cpgmcurcrktupa",
 		//"cfx:aat3ubbh4069rknr6x5xj7203k4rkgmnxan6m1zkte",
-		"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz",
-		"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv",
-		"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89",
-		"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
-		"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
-		"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
-		"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
+		//"cfx:aasza6y09fz0x4m3fst7ns3ftyzy1wu7xu0zd3fmxz",
+		//"cfx:aatwet2956zpy02vt3kgeza94yue0fa1netp73gvjv",
+		//"cfx:aan3r4m0tbp60pdbupm6bpcs4bup0g9wfy1hsntu89",
+		//"cfx:aambhupzaa7rstuv04trwrkdjvdasr7ynyzbh099td",
+		//"cfx:aak5y9js8ey7at6x1y8t9erh83903e6r4aur5hwxwn",
+		//"cfx:aakrvatb36kjpg5yj0bu04086c3cwanccyuggrxx7s",
+		//"cfx:aasxfn4jhmv91xn8khas8azu50dx02uvp6y6uegnex",
 	}
 
 	tm := testInitWalletManager()
@@ -198,8 +198,8 @@ func TestTransfer_CRC20(t *testing.T) {
 	//walletID := "W8BuKjHbeqRDj2wKHZLSyUXarg3fKhQ5Gd"
 	//accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
 	contract := openwallet.SmartContract{
-		//Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
-		Address:"cfx:accx12snrf80zhc8vggw9ty6n21tf2vk4ug35wgkse",
+		Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
+		//Address:"cfx:accx12snrf80zhc8vggw9ty6n21tf2vk4ug35wgkse",
 		Symbol:   "CFX",
 		Name:     "BLOCKLINK",
 		Token:    "BT",
@@ -286,6 +286,7 @@ func TestSummary_CRC20(t *testing.T) {
 	accountID := "4AXveixifVBC7BP7o1TZQ4gfM55W4sjaXcHbxKKHLfnn"
 	summaryAddress := "cfx:aaks4vj20ut9uru51a1pdvjebmamsb3ycupzag834m"
 	summaryAddress = "cfx:aaphzzjvh4cd7hnjwxhrg1k0mu0nnbf0fen1utdran"
+	summaryAddress = "cfx:aat0g19frj85yzwdsd05vpr6k848fhdwb6b1mya9dg"
 	feesSupport := openwallet.FeesSupportAccount{
 		AccountID: "7v7m8BfbZiCEuwFPerYjHdKM9J4xfNbpwUrKyN1ZFwN4",
 		FixSupportAmount: "0.01",
@@ -293,8 +294,8 @@ func TestSummary_CRC20(t *testing.T) {
 	}
 
 	contract := openwallet.SmartContract{
-		//Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
-		Address:"cfx:accx12snrf80zhc8vggw9ty6n21tf2vk4ug35wgkse",
+		Address:  "cfx:acfkgzsyk8ypsk28yvn3rd4sebhsn43b1pmban80bg",
+		//Address:"cfx:accx12snrf80zhc8vggw9ty6n21tf2vk4ug35wgkse",
 		Symbol:   "CFX",
 		Name:     "BLOCKLINK",
 		Token:    "BT",
